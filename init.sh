@@ -8,6 +8,9 @@ set -e
 # This script initializes Defects4J. In particular, it downloads and sets up:
 # - the project's version control repositories
 # - the Major mutation framework
+# - the PIT mutation framework
+# - the Judy mutation framework
+# - the Jumble mutation framework
 # - the supported test generation tools
 # - the supported code coverage tools (TODO)
 ################################################################################
@@ -22,6 +25,11 @@ if [ "$(uname)" = "Darwin" ] ; then
 fi
 if ! curl --version > /dev/null 2>&1; then
     echo "Couldn't find curl to download dependencies. Please install curl and re-run this script."
+    exit 1
+fi
+# Check whether mvn is available (needed for PIT)
+if ! mvn --version > /dev/null 2>&1; then
+    echo "Couldn't find maven to install dependencies. Please install maven and re-run this script."
     exit 1
 fi
 
@@ -129,6 +137,84 @@ MAJOR_ZIP="major-${MAJOR_VERSION}_jre7.zip"
 cd "$BASE" && download_url_and_unzip "$MAJOR_URL/$MAJOR_ZIP" \
            && rm "$MAJOR_ZIP" \
            && cp major/bin/.ant major/bin/ant
+           
+################################################################################
+#
+# Setup Mutation Tools folder
+#
+echo
+echo "Setting up Mutation Tools ... "
+MUTOOLS="$BASE/mutation_tools"
+mkdir -p $MUTOOLS
+
+################################################################################
+#
+# Setup Junit libs
+#
+echo
+echo "Setting up Junit libs ... "
+
+JUNIT_VERSION="4.12"
+JUNIT_JAR="junit-$JUNIT_VERSION.jar"
+JUNIT_URL="https://repo1.maven.org/maven2/junit/junit/$JUNIT_VERSION/$JUNIT_JAR"
+
+JUNIT_ADDONS_VERSION="1.4"
+JUNIT_ADDONS_JAR="junit-addons-$JUNIT_ADDONS_VERSION.jar"
+JUNIT_ADDONS_URL="https://repo1.maven.org/maven2/junit-addons/junit-addons/$JUNIT_ADDONS_VERSION/$JUNIT_ADDONS_JAR"
+
+cd "$MUTOOLS" && mkdir -p lib \
+              && download_url $JUNIT_URL && mv $JUNIT_JAR lib/ \
+              && download_url $JUNIT_ADDONS_URL && mv $JUNIT_ADDONS_JAR lib/
+
+################################################################################
+#
+# Setup PIT
+#
+echo
+echo "Setting up Pitest ... "
+PITEST_VERSION="1.6.3"
+PITEST_URL="https://github.com/hcoles/pitest/archive/$PITEST_VERSION.zip"
+PITEST_NAME="pitest-$PITEST_VERSION"
+PITEST_ZIP="$PITEST_VERSION.zip"
+cd "$MUTOOLS" && download_url_and_unzip "$PITEST_URL" \
+              && rm "$PITEST_ZIP"  \
+              && cd "$PITEST_NAME" \
+              && mvn package
+
+PITEST_MVN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+PATTERN="pitest*$PITEST_MVN_VERSION.jar"
+
+# copy all pitest jars in another dir
+PITEST_JAR_DIR="pitest-$PITEST_VERSION-jars"
+cd "$MUTOOLS" && mkdir -p "$PITEST_JAR_DIR" \
+              && cp $(find $(pwd) -name "$PATTERN") "$PITEST_JAR_DIR"
+
+################################################################################
+#
+# Setup Judy
+#
+echo
+echo "Setting up Judy ... "
+JUDY_NAME="judy-cli-all-bin"
+JUDY_VERSION="3.0.0-M1"
+JUDY_FNAME="$JUDY_NAME-$JUDY_VERSION"
+JUDY_ZIP="$JUDY_FNAME.zip"
+JUDY_URL="http://artifactory.negacz.net/artifactory/judy3-release/pl/edu/pwr/judy/$JUDY_NAME/$JUDY_VERSION/$JUDY_ZIP"
+cd "$MUTOOLS" && download_url_and_unzip "$JUDY_URL" \
+              && rm "$JUDY_ZIP"
+
+################################################################################
+#
+# Setup Jumble
+#
+echo
+echo "Setting up Jumble ... "
+JUMBLE_VERSION="1.3.0"
+JUMBLE_FNAME="jumble_binary_$JUMBLE_VERSION.jar"
+JUMBLE_URL="https://phoenixnap.dl.sourceforge.net/project/jumble/jumble/$JUMBLE_VERSION/$JUMBLE_FNAME"
+cd "$MUTOOLS" && download_url "$JUMBLE_URL" \
+              && mkdir -p "jumble" \
+              && mv "$JUMBLE_FNAME" "jumble/"
 
 ################################################################################
 #
