@@ -68,6 +68,7 @@ project-specific build file ("project_id"/"project_id".build.xml) for the
     <property name="d4j.dir.classes.mutated" value="${d4j.workdir}/.classes_mutated"/>
     <!-- Directory of coverage reports-->
     <property name="d4j.dir.coverage.report" value="${d4j.workdir}" />
+    <property name="d4j.dir.coverage.report.html" value="${d4j.dir.coverage.report}/htmlcov" />
     <!-- Data file that holds coverage information-->
     <property name="d4j.file.cobertura.ser" value="cobertura.ser" />
 
@@ -348,7 +349,7 @@ project-specific build file ("project_id"/"project_id".build.xml) for the
     <target name="coverage.report">
         <mkdir dir="${d4j.dir.coverage.report}" />
 
-        <!-- <cobertura-report format="html" destdir="${coverage.dir}" srcdir="${coverage.src.dir}" /> -->
+        <cobertura-report format="html" destdir="${d4j.dir.coverage.report.html}" srcdir="${coverage.src.dir}" />
         <cobertura-report format="xml" destdir="${d4j.dir.coverage.report}" srcdir="${coverage.src.dir}" />
     </target>
 
