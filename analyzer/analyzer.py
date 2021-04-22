@@ -16,8 +16,9 @@ except FileNotFoundError:
 
 FORMAT = "%(levelname)s :: [%(module)s.%(funcName)s.%(lineno)d] :: %(message)s"
 
-subjects = ["cli", "gson", "lang"]
-tools = ["judy", "jumble", "major", "pit"]
+subjects = ("cli", "gson", "lang")
+tools = ("judy", "jumble", "major", "pit")
+actions = ("coverage", "mutants")
 
 parser = argparse.ArgumentParser()
 
@@ -25,9 +26,7 @@ parser.add_argument("subject", help="The subject of interest", choices=subjects)
 parser.add_argument(
     "version", help="The version of the subject", choices=("buggy", "fixed")
 )
-parser.add_argument(
-    "action", help="The action to perform", choices=("coverage", "mutants")
-)
+parser.add_argument("action", help="The action to perform", choices=actions)
 parser.add_argument(
     "--stdout",
     help="Wether to capture or not tools stdout",
@@ -98,13 +97,17 @@ elif args.version == "fixed":
 else:
     raise ValueError(args.version)
 
-name = f"{subject}{version}".upper()
+name = f"{subject} ({args.version})".upper()
 logging.info(f"WORKING ON {name}")
 
 subject_dir = Path(f"{subject_dict['name']}{version}")
 subject_test_own_dir = Path(subject_dict["tests"])
 
-assert all(p.exists() for p in (subject_dir, subject_test_own_dir))
+if not subject_dir.exists():
+    raise FileNotFoundError(subject_dir)
+
+if not subject_test_own_dir.exists():
+    raise FileNotFoundError(subject_test_own_dir)
 
 # get test root, where to place other files
 subject_test_dir = subject_dir / subject_dict["test"]
@@ -131,7 +134,7 @@ def defects4j_cmd(cmd: str, *other_args, change_dir=True, **kwargs):
         "query",
         "test",
     )
-    assert cmd in possible_cmds
+    assert cmd in possible_cmds, "Invalid command provided for defects4j!"
     sub_cmd = ["defects4j", cmd]
     for arg in other_args:
         sub_cmd += [arg]
