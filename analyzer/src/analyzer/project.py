@@ -139,9 +139,9 @@ class Project:
         """Execute defects4j compile"""
         return self._execute_defects4j_cmd("compile")
 
-    def d4j_coverage(self):
+    def d4j_coverage(self, **kwargs):
         """Execute defects4j coverage"""
-        return self._execute_defects4j_cmd("coverage")
+        return self._execute_defects4j_cmd("coverage", **kwargs)
 
     def _get_tools(self, tools: Union[model.Tool, Sequence[model.Tool]] = None):
         # if None, take every tool
@@ -159,7 +159,7 @@ class Project:
 
         return tools
 
-    def coverage(self, tools: Union[model.Tool, Sequence[model.Tool]] = None):
+    def coverage(self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs):
         """Execute coverage for selected tools.
         If 'tools' is None, every tool will be selected.
         """
@@ -174,7 +174,7 @@ class Project:
 
             # execute defects4j coverage
             # produces coverage.xml
-            self.d4j_coverage()
+            self.d4j_coverage(**kwargs)
 
             # get student names
             names = list(self.get_student_names(tool))

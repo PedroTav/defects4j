@@ -73,10 +73,12 @@ def main():
     else:
         tools = get_all_tools(project.filepath)
 
+    kwargs = dict(stdout=args.stdout, stderr=args.stderr)
+
     if args.action == "mutants":
-        project.get_mutants(tools, stdout=args.stdout, stderr=args.stderr)
+        project.get_mutants(tools, **kwargs)
     elif args.action == "coverage":
-        project.coverage(tools)
+        project.coverage(tools, **kwargs)
     else:
         raise ValueError(f"Invalid action provided: {args.action}. Valid are {actions}")
 
