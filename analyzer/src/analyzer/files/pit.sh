@@ -1,8 +1,9 @@
 #!/bin/bash
 
-HERE=$(pwd)
+HERE=$(dirname "$0")
 # suppose we are in base/work/<repo>
-BASE=$(cd ../.. && pwd)
+BASE=$(cd $HERE/../.. && pwd)
+
 MUTATION_TOOLS=$(cd $BASE/mutation_tools && pwd)
 LIB_HOME="$MUTATION_TOOLS/lib"
 PIT_HOME="$MUTATION_TOOLS/pitest-1.6.3-jars"
@@ -38,7 +39,7 @@ TEST_TARGET="<TEST_REGEXP>"
 CLASS_TARGET="<CLASS_REGEXP>"
 TARGET_FLAG="--targetClasses $CLASS_TARGET --targetTests $TEST_TARGET"
 
-REPORT="--reportDir pit_report"
+REPORT="--reportDir $HERE/pit_report"
 TIMESTAMPED_REPORTS="--timestampedReports false"
 SRC="--sourceDirs $HERE/src/main/java"
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-HERE=$(pwd)
+HERE=$(dirname "$0")
 # suppose we are in base/work/<repo>
-BASE=$(cd ../.. && pwd)
+BASE=$(cd $HERE/../.. && pwd)
 MUTATION_TOOLS=$(cd $BASE/mutation_tools && pwd)
 JUDY=$MUTATION_TOOLS/judy-3.0.0-M1/bin/judy
 
@@ -33,6 +33,9 @@ fi
 if [ ! -z $TGX ]; then
   CMD="$CMD --test-file-regex $TGX"
 fi
+
+# result path of result.json file
+CMD="$CMD --result-path $HERE/result.json"
 
 echo "Command to run:"
 echo $CMD
