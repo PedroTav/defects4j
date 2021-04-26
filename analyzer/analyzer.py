@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from src.analyzer.model import get_tool
+from src.analyzer.model import get_all_tools, get_tool
 from src.analyzer.project import Project
 from src.analyzer.utility import test_environment
 
@@ -62,14 +62,16 @@ def main():
     # create project from path provided
     project = Project(args.path)
 
-    # select all tools if None
-    tools = None
+    # specify mutation tools to use
+    tools = []
 
-    # if specified, select tools subset
+    # if flag specified, select tools subset
     if args.tools:
-        tools = []
         for tool in args.tools:
             tools.append(get_tool(tool, project.filepath))
+    # otherwise take all tools
+    else:
+        tools = get_all_tools(project.filepath)
 
     if args.action == "mutants":
         project.get_mutants(tools, stdout=args.stdout, stderr=args.stderr)

@@ -57,9 +57,9 @@ class Tool(abc.ABC):
                 src = os.fspath(outfile)
                 dst = os.fspath(output_dir / outfile.name)
                 shutil.move(src, dst)
-                logger.info(f"Moved {outfile.name} to {output_dir.resolve()}")
+                logger.info(f"Moved {outfile.name} to {output_dir}")
             else:
-                msg = f"File not found: {outfile.resolve()}"
+                msg = f"File not found: {outfile} - did you execute run() before?"
                 logger.error(msg)
                 raise FileNotFoundError(msg)
 
@@ -149,3 +149,11 @@ def get_tool(tool_name: str, project_dir: Union[str, os.PathLike]):
         raise ValueError(msg)
 
     return valid_tools[tool_name]
+
+
+def get_all_tools(project_dir: Union[str, os.PathLike]):
+    """Utility function to retrieve all mutation tools with a project dir"""
+    return [
+        get_tool(tool_name=name, project_dir=project_dir)
+        for name in (Judy.name, Jumble.name, Major.name, Pit.name)
+    ]
