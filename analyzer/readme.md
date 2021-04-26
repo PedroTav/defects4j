@@ -33,17 +33,17 @@ Must be the path to a checked out Defects4j project.
 
 ### Optional args
 
-#### tools
+#### --tools
 Specify a list of tools (space separated) to use during the elaboration of the action.
 Valid values are `judy`, `jumble`, `major`, `pit`.
 
 If not specified, every tool will be used.
 
-#### v, verbose
+#### -v, --verbose
 Increase the verbosity of output.
 
-#### stdout
+#### --stdout
 Enable the stdout of the selected tools.
 
-#### stderr
+#### --stderr
 Enable the stderr of the selected tools.
