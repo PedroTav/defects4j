@@ -69,12 +69,14 @@ class Project:
         src = os.fspath(self.test_dir)
         dst = os.fspath(self.test_dir.with_name(name))
         shutil.move(src, dst)
+        logger.info(f"Backupped tests to {dst}")
 
     def restore_tests(self, name=default_backup_tests):
         """Restore original/dev tests"""
         src = os.fspath(self.test_dir.with_name(name))
         dst = os.fspath(self.test_dir)
         shutil.move(src, dst)
+        logger.info(f"Restored tests to {dst}")
 
     def _set_dir_testsuite(self, dirpath: Union[str, os.PathLike], **kwargs):
         """Set a directory of java files as the project testsuite.
@@ -105,6 +107,18 @@ class Project:
         else:
             os.makedirs(dst)
             shutil.copy(src, dst)
+
+        with_dev = kwargs.get("with_dev", False)
+        logger.debug(f"Restore dev tests? {with_dev}")
+        if with_dev:
+            dev_test = self.test_dir.parent / self.default_backup_tests
+            logger.debug(f"Dev test: {dev_test}")
+            if dev_test.exists():
+                shutil.copytree(dev_test, dst, dirs_exist_ok=True)
+                logger.info(f"Dev tests copied into {dst}")
+            else:
+                msg = "Dev tests doesn't exist! Did you run 'analyzer.py backup <path>' before?"
+                logger.error(msg)
 
     def project_tests_root(self):
         """Get the root of project tests, based on project name"""
@@ -190,8 +204,10 @@ class Project:
         logger.info(f"Executing coverage on tools {tools}")
 
         if len(tools) > 1 and kwargs.get("group"):
-            msg = "Cannot select a students group with multiple tools, retry with a single tool. " \
-                  "Arg will be ignored!"
+            msg = (
+                "Cannot select a students group with multiple tools, retry with a single tool. "
+                "Arg will be ignored!"
+            )
             logger.warning(msg)
             kwargs.pop("group")
 
