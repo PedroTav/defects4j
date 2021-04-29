@@ -42,6 +42,7 @@ def main():
     parser.add_argument("path", help="path to Defects4j project")
 
     parser.add_argument("--tools", help="mutation tools to use", nargs="*")
+    parser.add_argument("--group", help="students group's testsuite to use")
     parser.add_argument(
         "-v", "--verbose", help="increase verbosity", action="store_true", default=False
     )
@@ -73,7 +74,7 @@ def main():
     else:
         tools = get_all_tools(project.filepath)
 
-    kwargs = dict(stdout=args.stdout, stderr=args.stderr)
+    kwargs = dict(stdout=args.stdout, stderr=args.stderr, group=args.group)
 
     if args.action == "mutants":
         project.get_mutants(tools, **kwargs)
