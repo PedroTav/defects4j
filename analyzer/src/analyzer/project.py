@@ -114,7 +114,7 @@ class Project:
             dev_test = self.test_dir.parent / self.default_backup_tests
             logger.debug(f"Dev test: {dev_test}")
             if dev_test.exists():
-                shutil.copytree(dev_test, dst, dirs_exist_ok=True)
+                shutil.copytree(dev_test, self.test_dir, dirs_exist_ok=True)
                 logger.info(f"Dev tests copied into {dst}")
             else:
                 msg = "Dev tests doesn't exist! Did you run 'analyzer.py backup <path>' before?"
