@@ -79,7 +79,7 @@ def defects4j_cmd(cmd: str = "", *args, **kwargs):
     stdout = None if kwargs.get("stdout") else subprocess.DEVNULL
     stderr = None if kwargs.get("stderr") else subprocess.DEVNULL
 
-    kwargs.update(stdout=stdout, stderr=stderr)
+    kwargs = dict(stdout=stdout, stderr=stderr)
 
     logger.debug(f"Running {command}")
     return subprocess.run(command, **kwargs)
