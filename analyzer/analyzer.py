@@ -58,6 +58,12 @@ def main():
         action="store_true",
         default=False,
     )
+    parser.add_argument(
+        "--skip-setup",
+        help="skip the setup of the tool (running coverage against current testsuite)",
+        action="store_true",
+        default=False,
+    )
 
     # parse user input
     args = parser.parse_args()
@@ -65,6 +71,8 @@ def main():
     # increase verbosity (debug logging)
     if args.verbose:
         stream_handler.setLevel(logging.DEBUG)
+
+    logger.info(f"args are {args}")
 
     # create project from path provided
     project = Project(args.path)
@@ -81,7 +89,11 @@ def main():
         tools = get_all_tools(project.filepath)
 
     kwargs = dict(
-        stdout=args.stdout, stderr=args.stderr, group=args.group, with_dev=args.with_dev
+        stdout=args.stdout, 
+        stderr=args.stderr, 
+        group=args.group, 
+        with_dev=args.with_dev,
+        skip_setup=args.skip_setup,
     )
 
     action = args.action

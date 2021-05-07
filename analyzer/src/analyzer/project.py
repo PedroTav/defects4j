@@ -211,11 +211,18 @@ class Project:
             logger.warning(msg)
             kwargs.pop("group")
 
+        skip_setup = kwargs.get("skip_setup", False)
+
         for tool in tools:
             logger.info(f"Start coverage of tool {tool}")
 
-            # set tool tests for project
-            self.set_tool_testsuite(tool, **kwargs)
+            if not skip_setup:
+                # set tool tests for project
+                self.clean()
+                self.d4j_compile()
+                self.set_tool_testsuite(tool, **kwargs)
+            else:
+                logger.info("Skipping setup testsuite")
 
             # execute defects4j coverage
             # produces coverage.xml

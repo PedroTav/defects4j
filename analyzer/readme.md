@@ -11,6 +11,14 @@ The usage is `python3 analyzer.py <action> <path>`.
 Check the `--help` to see all commands.
 
 ## Actions
+### Backup
+Backup the current testsuite. If launched as first command, backup the dev testsuite.
+
+Required to run `coverage --with-dev`.
+
+### Restore
+Restore the backupped testsuite.
+
 ### Coverage
 This action will launch `defects4j coverage` against the student test suites related
 to a single (or every) tool, obtaining the cobertura's coverage xmls about line and
@@ -26,10 +34,10 @@ PS: Judy won't generate any mutant with this method.
 ### Required args
 
 #### action
-Must be `coverage` or `mutants`.
+Must be one of the aforementioned actions.
 
 #### path
-Must be the path to a checked out Defects4j project.
+Must be the path of a checked out Defects4j project.
 
 ### Optional args
 
@@ -38,6 +46,16 @@ Specify a list of tools (space separated) to use during the elaboration of the a
 Valid values are `judy`, `jumble`, `major`, `pit`.
 
 If not specified, every tool will be used.
+
+#### --with-dev
+Run the selected action including the developers tests. Works only with `coverage`.
+
+Requires an inital `backup` action to work.
+
+#### --skip-setup
+Skip the setup of the tool (i.e. overwritting current testsuite with students' one),
+executing the specified action against the current testsuite found in the right folder. 
+Works only with `coverage`.
 
 #### -v, --verbose
 Increase the verbosity of output.
