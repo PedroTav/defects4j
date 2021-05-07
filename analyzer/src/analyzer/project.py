@@ -67,9 +67,13 @@ class Project:
     def backup_tests(self, name=default_backup_tests):
         """Backup original/dev tests"""
         src = os.fspath(self.test_dir)
-        dst = os.fspath(self.test_dir.with_name(name))
-        shutil.move(src, dst)
-        logger.info(f"Backupped tests to {dst}")
+        dst = self.test_dir.with_name(name)
+        if dst.is_dir():
+            logger.warning(f"Backup already made to {dst}")
+        else:
+            dst = os.fspath(dst)
+            shutil.move(src, dst)
+            logger.info(f"Backupped tests to {dst}")
 
     def restore_tests(self, name=default_backup_tests):
         """Restore original/dev tests"""
@@ -215,6 +219,9 @@ class Project:
 
         for tool in tools:
             logger.info(f"Start coverage of tool {tool}")
+
+            # backup original tests
+            self.backup_tests()
 
             if not skip_setup:
                 # set tool tests for project
