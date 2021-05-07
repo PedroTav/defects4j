@@ -7,5 +7,9 @@ framework/test/*.log
 project_repos/*
 !project_repos/get_repos.sh
 major/*
-work/
+work*/
 mutation_tools/
+
+# ide files
+.idea/
+.vscode/
