@@ -13,3 +13,7 @@ mutation_tools/
 # ide files
 .idea/
 .vscode/
+
+# linters
+setup.cfg
+.pre-commit-config.yaml
