@@ -1,4 +1,5 @@
 import abc
+import io
 import json
 import logging
 import os
@@ -8,6 +9,7 @@ import shutil
 import xml.etree.ElementTree as ET
 from typing import Union
 
+import pandas as pd
 from src.analyzer import utility
 
 logger = logging.getLogger(__file__)
@@ -100,6 +102,8 @@ class Tool(abc.ABC):
 
         for outfile in self.output:
             outfile = self.project_dir / outfile
+            outfile = outfile.resolve()
+            logger.debug(f"Working on {outfile}")
             if outfile.exists():
                 src = os.fspath(outfile)
                 dst = os.fspath(output_dir / outfile.name)
@@ -230,8 +234,50 @@ class Major(Tool):
     def run(self, **kwargs):
         return utility.defects4j_cmd_dirpath(self.project_dir, "mutation")
 
-    def _get_mutation_score(self) -> float:
-        raise NotImplementedError
+    def _get_mutation_score(self) -> dict:
+        text = self._get_output_text("kill.csv")
+        stream = io.StringIO(text)
+        columns = ["MutantNo", "Status"]
+        kill_df = pd.read_csv(stream, header=0, names=columns).set_index("MutantNo")
+
+        text = self._get_output_text("mutants.log")
+        stream = io.StringIO(text)
+        columns = [
+            "MutantNo",
+            "Operator",
+            "From",
+            "To",
+            "Signature",
+            "LineNumber",
+            "Description",
+        ]
+        mutants_df = pd.read_csv(
+            stream, delimiter=":", header=None, names=columns
+        ).set_index("MutantNo")
+
+        if kill_df.empty:
+            logger.info("kill.csv is empty! All mutants generated are live")
+            return dict(
+                killed=0,
+                live=len(mutants_df),
+                all=len(mutants_df),
+                score=0,
+                score_full=0,
+            )
+        else:
+            df = mutants_df.join(kill_df)
+            live_count = len(df[df["Status"] == "LIVE"])
+            all_count = len(df)
+            killed_count = all_count - live_count
+            score = killed_count / all_count
+
+            return dict(
+                killed=killed_count,
+                live=live_count,
+                all=all_count,
+                score=round(score, 3),
+                score_full=score,
+            )
 
 
 class Pit(Tool):
