@@ -169,11 +169,17 @@ class Jumble(Tool):
         # get killed count as length of mutations with whitespaces removed
         killed_mutants_count = len(re.sub(r"\s+", "", killed_text))
 
+        all_count = live_mutants_count + killed_mutants_count
+
+        score_full = killed_mutants_count / all_count
+        score = round(score_full, 3)
+
         return dict(
             killed=killed_mutants_count,
             live=live_mutants_count,
-            all=live_mutants_count + killed_mutants_count,
-            score=killed_mutants_count / (live_mutants_count + killed_mutants_count),
+            all=all_count,
+            score=score,
+            score_full=score_full,
         )
 
 
