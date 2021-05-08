@@ -319,7 +319,7 @@ class Project:
                     tests = " ".join(self.get_tests())
                 # if I have a Pit tool, I must specify the regex of all tests
                 else:
-                    tests = str(self.test_dir / "*").replace("/", ".")
+                    tests = "*Test*"
 
                 kwargs.update(
                     {

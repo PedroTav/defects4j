@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 import shutil
+import xml.etree.ElementTree as ET
 from typing import Union
 
 from src.analyzer import utility
@@ -30,12 +31,21 @@ class Tool(abc.ABC):
         """Returns the output directory created inside the project directory"""
         return self.project_dir / self.tools_output / self.name
 
-    def __init__(self, project_dir: Union[str, os.PathLike]):
+    def __init__(self, project_dir: Union[str, os.PathLike], class_under_mutation: str):
         self.project_dir = pathlib.Path(project_dir)
+        self.class_under_mutation = class_under_mutation
 
-    def _get_output_text(self, index: int = 0):
-        """Return the text of a specified (index) output of the tool"""
-        with open(self.get_output_dir() / self.output[index]) as f:
+    def _get_output_text(self, filename=None):
+        """Return the text of a specified file inside the tool output dir.
+        If omitted, defaults to the first output listed."""
+        output = filename or self.output[0]
+        output = self.get_output_dir() / output
+        logger.debug(f"Reading text from {output.resolve()}")
+
+        if not output.is_file():
+            raise FileNotFoundError(output.resolve())
+
+        with open(output) as f:
             text = f.read()
         return text
 
@@ -63,11 +73,6 @@ class Tool(abc.ABC):
         output_dir = self.get_output_dir()
         logger.debug(f"Output dir is {output_dir.resolve()}")
 
-        for outfile in self.output:
-            outfile = output_dir / outfile
-            if not outfile.exists():
-                msg = f"{outfile} not found. Did you execute run() before?"
-                raise FileNotFoundError(msg)
         score_dict = self._get_mutation_score()
         logger.debug(f"Score dict is {score_dict}")
 
@@ -130,8 +135,40 @@ class Judy(Tool):
     bash_script = "judy.sh"
     output = ["result.json"]
 
-    def _get_mutation_score(self) -> float:
-        raise NotImplementedError
+    def _get_mutation_score(self) -> dict:
+        text = self._get_output_text()
+        result_dict = json.loads(text)
+
+        thedict = [
+            adict
+            for adict in result_dict["classes"]
+            if adict["name"] == self.class_under_mutation
+        ]
+
+        assert (
+            len(thedict) > 0
+        ), f"{self.class_under_mutation} not found in Judy output!"
+        assert (
+            len(thedict) == 1
+        ), f"{self.class_under_mutation} appears multiple times in Judy output!"
+
+        # take the only dict
+        thedict = thedict[0]
+
+        # and parse it
+        all_count = thedict["mutantsCount"]
+        killed_count = thedict["mutantsKilledCount"]
+        live_count = all_count - killed_count
+        score_full = killed_count / all_count
+        score = round(score_full, 3)
+
+        return dict(
+            killed=killed_count,
+            live=live_count,
+            all=all_count,
+            score=score,
+            score_full=score_full,
+        )
 
 
 class Jumble(Tool):
@@ -213,17 +250,46 @@ class Pit(Tool):
         }
         self.replace(mapping=mapping)
 
-    def _get_mutation_score(self) -> float:
-        raise NotImplementedError
+    def _get_mutation_score(self) -> dict:
+        text = self._get_output_text("mutations.xml")
+
+        # get xml tree for xml text
+        tree = ET.fromstring(text)
+
+        # map
+        bool_mapper = dict(true=True, false=False)
+
+        killed_count = 0
+        live_count = 0
+
+        for child in tree:
+            killed = bool_mapper[child.get("detected")]
+            if killed:
+                killed_count += 1
+            else:
+                live_count += 1
+        all_count = killed_count + live_count
+        score_full = killed_count / all_count
+        score = round(score_full, 3)
+
+        return dict(
+            killed=killed_count,
+            live=live_count,
+            all=all_count,
+            score=score,
+            score_full=score_full,
+        )
 
 
-def get_tool(tool_name: str, project_dir: Union[str, os.PathLike]):
+def get_tool(
+    tool_name: str, project_dir: Union[str, os.PathLike], class_under_mutation: str
+):
     """Utility function to retrieve a tool from a name and a project dir"""
     valid_tools = {
-        Judy.name: Judy(project_dir),
-        Jumble.name: Jumble(project_dir),
-        Major.name: Major(project_dir),
-        Pit.name: Pit(project_dir),
+        Judy.name: Judy(project_dir, class_under_mutation),
+        Jumble.name: Jumble(project_dir, class_under_mutation),
+        Major.name: Major(project_dir, class_under_mutation),
+        Pit.name: Pit(project_dir, class_under_mutation),
     }
     if tool_name not in valid_tools.keys():
         msg = f"Invalid tool provided: {tool_name}. Valid tools are {list(valid_tools.keys())}"
@@ -233,9 +299,13 @@ def get_tool(tool_name: str, project_dir: Union[str, os.PathLike]):
     return valid_tools[tool_name]
 
 
-def get_all_tools(project_dir: Union[str, os.PathLike]):
+def get_all_tools(project_dir: Union[str, os.PathLike], class_under_mutation: str):
     """Utility function to retrieve all mutation tools with a project dir"""
     return [
-        get_tool(tool_name=name, project_dir=project_dir)
+        get_tool(
+            tool_name=name,
+            project_dir=project_dir,
+            class_under_mutation=class_under_mutation,
+        )
         for name in (Judy.name, Jumble.name, Major.name, Pit.name)
     ]

@@ -85,10 +85,10 @@ def main():
     # if flag specified, select tools subset
     if args.tools:
         for tool in args.tools:
-            tools.append(get_tool(tool, project.filepath))
+            tools.append(get_tool(tool, project.filepath, project.relevant_class))
     # otherwise take all tools
     else:
-        tools = get_all_tools(project.filepath)
+        tools = get_all_tools(project.filepath, project.relevant_class)
 
     kwargs = dict(
         stdout=args.stdout,
