@@ -69,11 +69,11 @@ class Project:
         src = os.fspath(self.test_dir)
         dst = self.test_dir.with_name(name)
         if dst.is_dir():
-            logger.warning(f"Backup already made to {dst}")
+            logger.debug(f"Backup already made to {dst}")
         else:
             dst = os.fspath(dst)
             shutil.move(src, dst)
-            logger.info(f"Backupped tests to {dst}")
+            logger.debug(f"Backupped tests to {dst}")
 
     def restore_tests(self, name=default_backup_tests):
         """Restore original/dev tests"""
@@ -159,6 +159,28 @@ class Project:
                 logger.debug(f"Match found: {match.groups()}")
                 yield match.group(3)
 
+    def get_tests(self) -> Sequence[str]:
+        """Return a list of tests in current testsuite with Java format,
+        i.e. package.to.TestClass"""
+
+        # get old cwd
+        cwd = pathlib.Path().resolve()
+
+        # change dir to test dir root
+        os.chdir(self.test_dir)
+
+        # get tests as glob of all java files here (rglob recursive)
+        tests = list(pathlib.Path().rglob("*.java"))
+        logger.debug(f"Found {len(tests)} tests inside {self.test_dir}")
+
+        # convert from package/to/Test.java to package.to.Test
+        tests = [str(test).replace("/", ".").replace(".java", "") for test in tests]
+
+        # change dir to old cwd
+        os.chdir(cwd)
+
+        return tests
+
     def _execute_defects4j_cmd(self, command: str, *args, **kwargs):
         """Execute Defects4j command in the right folder"""
         return utility.defects4j_cmd_dirpath(self.filepath, command, *args, **kwargs)
@@ -217,11 +239,11 @@ class Project:
 
         skip_setup = kwargs.get("skip_setup", False)
 
+        # backup original tests
+        self.backup_tests()
+
         for tool in tools:
             logger.info(f"Start coverage of tool {tool}")
-
-            # backup original tests
-            self.backup_tests()
 
             if not skip_setup:
                 # set tool tests for project
@@ -254,6 +276,93 @@ class Project:
             else:
                 msg = f"Skipping {tool} because {fname} wasn't found - maybe there was an error?"
                 logger.warning(msg)
+
+    def get_mutation_scores(
+        self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
+    ):
+        """Get mutation scores for the selected tools.
+        If 'tools' is None, every tool will be selected.
+        """
+
+        tools = self._get_tools(tools)
+        logger.info(f"Executing get_mutation_scores on tools {tools}")
+
+        if not tools:
+            logger.warning("Empty toolset, exit...")
+            return
+
+        # backup original tests
+        self.backup_tests()
+
+        for tool in tools:
+            logger.info(f"Start get_mutation_scores for {tool}")
+
+            # clean old target
+            self.clean()
+
+            # set entire tool testsuite
+            # if student group is set, set only that testsuite
+            # if with-dev is set, set also dev testsuite
+            self.set_tool_testsuite(tool, **kwargs)
+
+            # compile new testsuite
+            self.d4j_compile()
+
+            # must specify tests and class for replacement of dummy text
+            # inside bash scripts
+            if isinstance(tool, (model.Jumble, model.Pit)):
+                # class under mutation name is project relevant class
+                class_under_mutation = self.relevant_class
+
+                # if I have a Jumble tool, I must specify the list of all tests
+                if isinstance(tool, model.Jumble):
+                    tests = " ".join(self.get_tests())
+                # if I have a Pit tool, I must specify the regex of all tests
+                else:
+                    tests = str(self.test_dir / "*").replace("/", ".")
+
+                kwargs.update(
+                    {
+                        "tests": tests,
+                        "class": class_under_mutation,
+                    }
+                )
+
+            # execute tool
+            logger.debug(f"{tool} kwargs: {kwargs}")
+
+            logger.info(f"Setupping {tool}...")
+            tool.setup(**kwargs)
+            logger.info("Setup completed")
+
+            logger.info(f"Running {tool}...")
+            tool.run(**kwargs)
+            logger.info("Execution completed")
+
+            logger.info("Collecting output...")
+            tool.get_output()
+            logger.info("Output collected")
+
+            # get student names
+            students_group = kwargs.get("group")
+            if students_group:
+                str_names = students_group.upper()
+            else:
+                names = list(self.get_student_names(tool))
+                str_names = "_".join(names)
+
+            # get also dev, if used
+            with_dev = kwargs.get("with_dev")
+            if with_dev:
+                str_names += "_dev"
+
+            # create mutation score filename
+            fname = f"mutation_score_{str_names}"
+
+            # get mutation score
+            score = tool.get_mutation_score(json_output=fname)
+
+            logger.info(f"Got mutation score: {score}")
 
     def get_mutants(
         self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs

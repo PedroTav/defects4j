@@ -32,7 +32,9 @@ def main():
     # assure we're in a good env
     test_environment()
 
-    actions = ("backup", "restore", "mutants", "coverage")
+    # define actions and sort them automatically
+    actions = ("backup", "restore", "mutants", "coverage", "mutscore")
+    actions = sorted(actions)
 
     # create argument parser
     parser = argparse.ArgumentParser()
@@ -89,9 +91,9 @@ def main():
         tools = get_all_tools(project.filepath)
 
     kwargs = dict(
-        stdout=args.stdout, 
-        stderr=args.stderr, 
-        group=args.group, 
+        stdout=args.stdout,
+        stderr=args.stderr,
+        group=args.group,
         with_dev=args.with_dev,
         skip_setup=args.skip_setup,
     )
@@ -99,6 +101,8 @@ def main():
     action = args.action
     if action == "mutants":
         project.get_mutants(tools, **kwargs)
+    elif action == "mutscore":
+        project.get_mutation_scores(tools, **kwargs)
     elif action == "coverage":
         project.coverage(tools, **kwargs)
     elif action == "backup":

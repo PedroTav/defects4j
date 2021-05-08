@@ -1,7 +1,9 @@
 import abc
+import json
 import logging
 import os
 import pathlib
+import re
 import shutil
 from typing import Union
 
@@ -18,13 +20,24 @@ class Tool(abc.ABC):
     name: str = ""
 
     bash_script = None
+    tools_output = "tools_output"
     output = []
 
     def __repr__(self):
         return f"{self.name.capitalize()}Tool"
 
+    def get_output_dir(self):
+        """Returns the output directory created inside the project directory"""
+        return self.project_dir / self.tools_output / self.name
+
     def __init__(self, project_dir: Union[str, os.PathLike]):
         self.project_dir = pathlib.Path(project_dir)
+
+    def _get_output_text(self, index: int = 0):
+        """Return the text of a specified (index) output of the tool"""
+        with open(self.get_output_dir() / self.output[index]) as f:
+            text = f.read()
+        return text
 
     def setup(self, **kwargs):
         """Setup tool files, copying them into the project dir"""
@@ -41,11 +54,40 @@ class Tool(abc.ABC):
         capture_err = kwargs.get("stderr", False)
         utility.bash_script(script, capture_out, capture_err)
 
-    def get_output(self, output_dir="tools_output"):
+    def _get_mutation_score(self) -> dict:
+        """Returns a dict, holding killed count, live count, all count and score"""
+        raise NotImplementedError
+
+    def get_mutation_score(self, json_output: str = None) -> float:
+        """Get mutation score for current testsuite and tool"""
+        output_dir = self.get_output_dir()
+        logger.debug(f"Output dir is {output_dir.resolve()}")
+
+        for outfile in self.output:
+            outfile = output_dir / outfile
+            if not outfile.exists():
+                msg = f"{outfile} not found. Did you execute run() before?"
+                raise FileNotFoundError(msg)
+        score_dict = self._get_mutation_score()
+        logger.debug(f"Score dict is {score_dict}")
+
+        if json_output:
+            if not json_output.endswith(".json"):
+                json_output += ".json"
+            json_output_path = output_dir / json_output
+            with open(json_output_path, "w") as f:
+                json.dump(score_dict, f)
+            logger.info(f"Written score json to {json_output_path}")
+
+        return score_dict["score"]
+
+    def get_output(self):
         """Get the tool output and place it under
         the specified output directory"""
 
-        output_dir = self.project_dir / output_dir / self.name
+        # cast output dir as pathlib object
+        output_dir = self.get_output_dir()
+
         # create output directory if didn't exist
         if not output_dir.exists():
             os.makedirs(output_dir)
@@ -59,8 +101,7 @@ class Tool(abc.ABC):
                 shutil.move(src, dst)
                 logger.info(f"Moved {outfile.name} to {output_dir}")
             else:
-                msg = f"File not found: {outfile} - did you execute run() before?"
-                logger.error(msg)
+                msg = f"{outfile} not found. Did you execute run() before?"
                 raise FileNotFoundError(msg)
 
     def replace(self, mapping: dict):
@@ -89,6 +130,9 @@ class Judy(Tool):
     bash_script = "judy.sh"
     output = ["result.json"]
 
+    def _get_mutation_score(self) -> float:
+        raise NotImplementedError
+
 
 class Jumble(Tool):
     """Jumble tool"""
@@ -106,6 +150,32 @@ class Jumble(Tool):
         }
         self.replace(mapping=mapping)
 
+    def _get_mutation_score(self) -> dict:
+        live_mutant_pattern = re.compile(r"M FAIL:\s*([a-zA-Z.]+):(\d+):\s*(.+)")
+        start_pattern = re.compile(
+            r"Mutation points = \d+, unit test time limit \d+\.\d+s"
+        )
+        end_pattern = re.compile(r"Jumbling took \d+\.\d+s")
+
+        text = self._get_output_text()
+
+        # get indices where the mutants are defined
+        i = start_pattern.search(text).end()
+        j = end_pattern.search(text[i:]).start() + i
+
+        # subtract from text all the fails + get count of them
+        killed_text, live_mutants_count = live_mutant_pattern.subn("", text[i:j])
+
+        # get killed count as length of mutations with whitespaces removed
+        killed_mutants_count = len(re.sub(r"\s+", "", killed_text))
+
+        return dict(
+            killed=killed_mutants_count,
+            live=live_mutants_count,
+            all=live_mutants_count + killed_mutants_count,
+            score=killed_mutants_count / (live_mutants_count + killed_mutants_count),
+        )
+
 
 class Major(Tool):
     """Major tool"""
@@ -116,6 +186,9 @@ class Major(Tool):
 
     def run(self, **kwargs):
         return utility.defects4j_cmd_dirpath(self.project_dir, "mutation")
+
+    def _get_mutation_score(self) -> float:
+        raise NotImplementedError
 
 
 class Pit(Tool):
@@ -133,6 +206,9 @@ class Pit(Tool):
             "class": {"original": "<CLASS_REGEXP>", "replacement": kwargs["class"]},
         }
         self.replace(mapping=mapping)
+
+    def _get_mutation_score(self) -> float:
+        raise NotImplementedError
 
 
 def get_tool(tool_name: str, project_dir: Union[str, os.PathLike]):
