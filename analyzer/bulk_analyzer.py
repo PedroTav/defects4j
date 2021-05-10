@@ -86,7 +86,7 @@ def main():
 
                 try:
                     if action == "mutants":
-                        project.get_mutants(tools, **combination)
+                        project.get_mutants(tool, **combination)
                     elif action == "mutscore":
                         project.get_mutation_scores(tool, **combination)
                     elif action == "coverage":
