@@ -197,6 +197,7 @@ class Jumble(Tool):
             r"Mutation points = \d+, unit test time limit \d+\.\d+s"
         )
         end_pattern = re.compile(r"Jumbling took \d+\.\d+s")
+        error_pattern = re.compile(r"Score: \d% \(([\w ]+)")
 
         text = self._get_output_text()
 
@@ -206,7 +207,10 @@ class Jumble(Tool):
             i = start_pattern.search(text).end()
             j = end_pattern.search(text[i:]).start() + i
         except AttributeError:
-            msg = "Cannot find start pattern; maybe test class is broken"
+            msg = (
+                f"Cannot find start pattern. "
+                f"Jumble message: {error_pattern.search(text).group(1)}"
+            )
             raise RuntimeError(msg)
 
         # subtract from text all the fails + get count of them
