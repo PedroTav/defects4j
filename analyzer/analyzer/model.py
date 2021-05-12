@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from typing import Union
 
 import pandas as pd
-from src.analyzer import utility
+from analyzer import utility
 
 logger = logging.getLogger(__file__)
 

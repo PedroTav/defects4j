@@ -1,9 +1,9 @@
 import argparse
 import logging
 
-from src.analyzer.model import get_all_tools, get_tool
-from src.analyzer.project import Project
-from src.analyzer.utility import test_environment
+from analyzer.model import get_all_tools, get_tool
+from analyzer.project import Project
+from analyzer.utility import test_environment
 
 # set logging format
 FORMAT = "%(levelname)s :: [%(module)s.%(funcName)s.%(lineno)d] :: %(message)s"

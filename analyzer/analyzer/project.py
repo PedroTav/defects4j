@@ -6,7 +6,7 @@ import re
 import shutil
 from typing import Generator, Sequence, Union
 
-from src.analyzer import model, utility
+from analyzer import model, utility
 
 logger = logging.getLogger(__name__)
 
