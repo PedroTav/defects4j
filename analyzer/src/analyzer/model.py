@@ -232,7 +232,7 @@ class Major(Tool):
     output = ["kill.csv", "mutants.log"]
 
     def run(self, **kwargs):
-        return utility.defects4j_cmd_dirpath(self.project_dir, "mutation")
+        return utility.defects4j_cmd_dirpath(self.project_dir, "mutation", **kwargs)
 
     def _get_mutation_score(self) -> dict:
         text = self._get_output_text("kill.csv")

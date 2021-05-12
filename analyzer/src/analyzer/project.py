@@ -198,9 +198,9 @@ class Project:
         else:
             logger.debug("Project was already clean")
 
-    def d4j_compile(self):
+    def d4j_compile(self, **kwargs):
         """Execute defects4j compile"""
-        return self._execute_defects4j_cmd("compile")
+        return self._execute_defects4j_cmd("compile", **kwargs)
 
     def d4j_coverage(self, **kwargs):
         """Execute defects4j coverage"""
@@ -306,7 +306,7 @@ class Project:
             self.set_tool_testsuite(tool, **kwargs)
 
             # compile new testsuite
-            self.d4j_compile()
+            self.d4j_compile(**kwargs)
 
             # must specify tests and class for replacement of dummy text
             # inside bash scripts
