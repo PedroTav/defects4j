@@ -1,5 +1,6 @@
 import argparse
 import logging
+import pathlib
 
 from analyzer.model import get_all_tools, get_tool
 from analyzer.project import Project
@@ -17,10 +18,12 @@ logger.setLevel(logging.DEBUG)
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler(".bulk.analyzer.log")
+HERE = pathlib.Path(__file__).parent
+
+file_handler = logging.FileHandler(HERE / "bulk.analyzer.log")
 file_handler.setLevel(logging.INFO)
 
-file_debug_handler = logging.FileHandler(".bulk.analyzer.debug.log")
+file_debug_handler = logging.FileHandler(HERE / "bulk.analyzer.debug.log")
 file_debug_handler.setLevel(logging.DEBUG)
 
 for handler in (stream_handler, file_handler, file_debug_handler):
