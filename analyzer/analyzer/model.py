@@ -234,6 +234,13 @@ class Major(Tool):
     def run(self, **kwargs):
         return utility.defects4j_cmd_dirpath(self.project_dir, "mutation", **kwargs)
 
+    def setup(self, **kwargs):
+        """Remove compiled directory that prevents
+        multiple mutations, if mutations.log is missing"""
+
+        target = self.project_dir / ".classes_mutated"
+        shutil.rmtree(target, ignore_errors=True)
+
     def _get_mutation_score(self) -> dict:
         text = self._get_output_text("kill.csv")
         stream = io.StringIO(text)
