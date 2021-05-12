@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from src.analyzer.model import get_all_tools
+from src.analyzer.model import get_all_tools, get_tool
 from src.analyzer.project import Project
 from src.analyzer.utility import test_environment
 
@@ -43,22 +43,45 @@ def main():
     )
     parser.add_argument("path", help="path to Defects4j project")
 
+    # optional args
+    parser.add_argument("--tools", help="mutation tools to use", nargs="*")
+    parser.add_argument(
+        "-v", "--verbose", help="increase verbosity", action="store_true"
+    )
+    parser.add_argument("--stdout", help="collect tools stdout", action="store_true")
+    parser.add_argument("--stderr", help="collect tools stderr", action="store_true")
+
     # parse user input
     args = parser.parse_args()
 
     logger.info(f"args are {args}")
 
+    if args.verbose:
+        stream_handler.setLevel(logging.DEBUG)
+
     # create project from path provided
     project = Project(args.path)
 
-    # get all tools
-    tools = get_all_tools(project.filepath, project.relevant_class)
+    # if flag specified, select tools subset
+    if args.tools:
+        tools = []
+        for tool in args.tools:
+            tools.append(get_tool(tool, project.filepath, project.relevant_class))
+    # otherwise take all tools
+    else:
+        tools = get_all_tools(project.filepath, project.relevant_class)
 
     # parse action from args
     action = args.action
 
     if action not in actions:
         raise ValueError(f"Invalid action provided: {action}. Valid are {actions}")
+
+    # create kwargs
+    kwargs = dict(
+        stdout=args.stdout,
+        stderr=args.stderr,
+    )
 
     # define size of delimiter
     SIZE = 100
@@ -84,13 +107,17 @@ def main():
                     logger.info("-" * (SIZE // 4))
                 logger.info(f"Combination under test: {combination}")
 
+                kwargs_copy = kwargs.copy()
+                kwargs_copy.update(combination)
+                logger.debug(f"Kwargs passed: {kwargs_copy}")
+
                 try:
                     if action == "mutants":
-                        project.get_mutants(tools, **combination)
+                        project.get_mutants(tool, **kwargs_copy)
                     elif action == "mutscore":
-                        project.get_mutation_scores(tool, **combination)
+                        project.get_mutation_scores(tool, **kwargs_copy)
                     elif action == "coverage":
-                        project.coverage(tool, **combination)
+                        project.coverage(tool, **kwargs_copy)
                     elif action == "backup":
                         project.backup_tests()
                     elif action == "restore":
