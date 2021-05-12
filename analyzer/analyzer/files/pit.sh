@@ -46,7 +46,7 @@ SRC="--sourceDirs $HERE/src/main/java"
 DEFAULTS="--mutators DEFAULTS"
 STRONGER="--mutators STRONGER"
 ALL="--mutators ALL"
-MUTATORS=$ALL
+MUTATORS=$STRONGER
 
 OUTPUT_FORMATS="--outputFormats html,xml,csv"
 
