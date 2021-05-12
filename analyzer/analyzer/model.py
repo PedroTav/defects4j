@@ -200,9 +200,14 @@ class Jumble(Tool):
 
         text = self._get_output_text()
 
-        # get indices where the mutants are defined
-        i = start_pattern.search(text).end()
-        j = end_pattern.search(text[i:]).start() + i
+        # try-except block to return a more understandable error
+        try:
+            # get indices where the mutants are defined
+            i = start_pattern.search(text).end()
+            j = end_pattern.search(text[i:]).start() + i
+        except AttributeError:
+            msg = "Cannot find start pattern; maybe test class is broken"
+            raise RuntimeError(msg)
 
         # subtract from text all the fails + get count of them
         killed_text, live_mutants_count = live_mutant_pattern.subn("", text[i:j])
