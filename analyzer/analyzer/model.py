@@ -51,12 +51,24 @@ class Tool(abc.ABC):
             text = f.read()
         return text
 
+    def remove_output(self, **kwargs):
+        """Utility function to remove output files"""
+        for outfile in self.output:
+            outfile = self.project_dir / outfile
+            if outfile.is_file():
+                os.remove(outfile)
+            elif outfile.is_dir():
+                shutil.rmtree(outfile)
+
     def setup(self, **kwargs):
         """Setup tool files, copying them into the project dir"""
         if self.bash_script:
             src = os.fspath(FILES / self.bash_script)
             dst = os.fspath(self.project_dir / self.bash_script)
             shutil.copy(src, dst)
+
+        # remove output files, to not parse them as current out
+        self.remove_output(**kwargs)
 
     def run(self, **kwargs):
         """Run the tool via its bash script"""
@@ -246,6 +258,7 @@ class Major(Tool):
     def setup(self, **kwargs):
         """Remove compiled directory that prevents
         multiple mutations, if mutations.log is missing"""
+        super(Major, self).setup()
 
         target = self.project_dir / ".classes_mutated"
         shutil.rmtree(target, ignore_errors=True)
