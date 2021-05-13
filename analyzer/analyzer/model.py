@@ -223,7 +223,7 @@ class Jumble(Tool):
                 f"Cannot find start pattern. "
                 f"Jumble message: {error_pattern.search(text).group(1)}"
             )
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from None
 
         # subtract from text all the fails + get count of them
         killed_text, live_mutants_count = live_mutant_pattern.subn("", text[i:j])
