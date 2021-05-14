@@ -22,6 +22,7 @@ public class CLI_JUMBLE_B3_StudentTest extends TestCase {
         assertTrue((s + EOL).equals(bytesOut.toString()));
     }
 
+    /*
     public void testFindWrapPos() throws Exception {
         HelpFormatter helpFormatter = new HelpFormatter();
         String text = "This is a \t tab.";
@@ -47,6 +48,7 @@ public class CLI_JUMBLE_B3_StudentTest extends TestCase {
         System.out.println(helpFormatter.findWrapPos(text, 10, 0));
         assertEquals(5, helpFormatter.findWrapPos(text, 10, 0));
     }
+    */
 
     public void testConstants() throws Exception {
         HelpFormatter helpFormatter = new HelpFormatter();

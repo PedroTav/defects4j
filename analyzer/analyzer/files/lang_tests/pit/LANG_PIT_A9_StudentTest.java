@@ -49,6 +49,7 @@ public class LANG_PIT_A9_StudentTest extends TestCase {
                     DateUtils.round(dateTimeParser.parse("November 18, 2001 1:23:12.000"), Calendar.MINUTE));
         }
 
+        /*
         public void testModifyHour() throws Exception{
         TimeZone.setDefault(defaultZone);
         dateTimeParser.setTimeZone(defaultZone);
@@ -59,6 +60,7 @@ public class LANG_PIT_A9_StudentTest extends TestCase {
         assertEquals("Test round HOUR",
                 dateTimeParser.parse("July 2, 2007 09:00:00.000"),
                 DateUtils.round(date, Calendar.HOUR));
-    }
+        }
+        */
 
 }
