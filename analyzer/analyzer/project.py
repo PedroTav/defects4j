@@ -91,11 +91,16 @@ class Project:
         if students is None:
             src = os.fspath(dirpath)
         else:
+            group_pattern = re.compile(r"[a-z]+_[a-z]+_([a-z0-9]+).*", re.I)
             students = students.upper()
+            all_found = [
+                group_pattern.match(element.name).group(1)
+                for element in pathlib.Path(dirpath).glob("*")
+            ]
             logger.debug(f"Searching {students} in Java files")
             fnames = list(pathlib.Path(dirpath).glob(f"*{students}*"))
             logger.debug(f"Found {fnames}")
-            assert len(fnames) > 0, f"No match found for {students}"
+            assert len(fnames) > 0, f"No match found for {students}. Found {all_found}"
             assert len(fnames) == 1, f"More than one match found for {students}"
             fname = fnames[0]
             src = os.fspath(fname.resolve())
