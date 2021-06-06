@@ -264,11 +264,12 @@ class Project:
 
             # get student names
             students_group = kwargs.get("group")
+            str_names = ""
             if students_group:
                 str_names = students_group.upper()
-            else:
-                names = list(self.get_student_names(tool))
-                str_names = "_".join(names)
+            # else:
+            #    names = list(self.get_student_names(tool))
+            #    str_names = "_".join(names)
 
             # rename coverage.xml
             fname = "coverage.xml"
@@ -350,11 +351,12 @@ class Project:
 
             # get student names
             students_group = kwargs.get("group")
+            str_names = ""
             if students_group:
                 str_names = students_group.upper()
-            else:
-                names = list(self.get_student_names(tool))
-                str_names = "_".join(names)
+            # else:
+            #    names = list(self.get_student_names(tool))
+            #    str_names = "_".join(names)
 
             # get also dev, if used
             with_dev = kwargs.get("with_dev")
@@ -421,11 +423,12 @@ class Project:
 
             # get student names
             students_group = kwargs.get("group")
+            str_names = ""
             if students_group:
                 str_names = students_group.upper()
-            else:
-                names = list(self.get_student_names(tool))
-                str_names = "_".join(names)
+            # else:
+            #    names = list(self.get_student_names(tool))
+            #    str_names = "_".join(names)
 
             # get also dev, if used
             with_dev = kwargs.get("with_dev")
