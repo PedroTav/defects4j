@@ -36,7 +36,7 @@ def main():
     test_environment()
 
     # define actions and sort them automatically
-    actions = ("backup", "restore", "mutants", "coverage", "mutscore")
+    actions = ("backup", "restore", "mutants", "coverage", "mutscore", "killed")
     actions = sorted(actions)
 
     # create argument parser
@@ -79,6 +79,12 @@ def main():
 
     logger.info(f"args are {args}")
 
+    # check if is a valid action
+    action = str(args.action).lower()
+    action_err = f"Invalid action provided: {action}. Valid actions are: {actions}"
+    if action not in actions:
+        parser.error(action_err)
+
     # create project from path provided
     project = Project(args.path)
 
@@ -112,8 +118,10 @@ def main():
         project.backup_tests()
     elif action == "restore":
         project.restore_tests()
+    elif action == "killed":
+        project.get_killed_mutants(tools, **kwargs)
     else:
-        raise ValueError(f"Invalid action provided: {action}. Valid are {actions}")
+        raise ValueError(action_err)
 
 
 if __name__ == "__main__":
