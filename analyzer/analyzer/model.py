@@ -134,9 +134,9 @@ class Tool(abc.ABC):
             content = f.read()
 
         # change its content (flags)
-        fixed = content.replace(
-            mapping["tests"]["original"], mapping["tests"]["replacement"]
-        ).replace(mapping["class"]["original"], mapping["class"]["replacement"])
+        fixed = content
+        for adict in mapping.values():
+            fixed = fixed.replace(adict["original"], adict["replacement"])
 
         # write to file
         with open(file, "w") as f:
@@ -197,9 +197,11 @@ class Jumble(Tool):
 
     def setup(self, **kwargs):
         super(Jumble, self).setup()
+        mutations = kwargs.get("mutations", "MUTATIONS_ALL")
         mapping = {
             "tests": {"original": "<REPLACE_TESTS>", "replacement": kwargs["tests"]},
             "class": {"original": "<REPLACE_CLASS>", "replacement": kwargs["class"]},
+            "mutations": {"original": "<REPLACE_MUTATIONS>", "replacement": mutations},
         }
         self.replace(mapping=mapping)
 

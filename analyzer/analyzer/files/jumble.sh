@@ -32,7 +32,9 @@ printf "\nClass to mutate: $CLASS \n"
 printf "\nTests to use:\n$TESTS \n\n"
 
 # mutations flags, "-S" doesn't work with "-t" (csv report)
-MUTATIONS="-w -i -k -r -X -S -j"
+MUTATIONS_ALL="-w -i -k -r -X -j -S"
+MUTATIONS_CSV="-w -i -k -r -X -j -t"
+MUTATIONS="$<REPLACE_MUTATIONS>"
 
 CMD="java -jar $JUMBLE $MUTATIONS -c $CLASSPATH $CLASS $TESTS_ONELINE"
 
