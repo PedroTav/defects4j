@@ -29,19 +29,22 @@ class Tool(abc.ABC):
     def __repr__(self):
         return f"{self.name.capitalize()}Tool"
 
-    def get_output_dir(self):
-        """Returns the output directory created inside the project directory"""
-        return self.project_dir / self.tools_output / self.name
+    def get_output_dir(self, subdirectory: str = None):
+        """Returns the output directory created inside the project directory."""
+        path = self.project_dir / self.tools_output / self.name
+        if subdirectory:
+            path /= subdirectory
+        return path
 
     def __init__(self, project_dir: Union[str, os.PathLike], class_under_mutation: str):
         self.project_dir = pathlib.Path(project_dir)
         self.class_under_mutation = class_under_mutation
 
-    def _get_output_text(self, filename=None):
+    def _get_output_text(self, filename=None, subdirectory: str = None):
         """Return the text of a specified file inside the tool output dir.
         If omitted, defaults to the first output listed."""
         output = filename or self.output[0]
-        output = self.get_output_dir() / output
+        output = self.get_output_dir(subdirectory) / output
         logger.debug(f"Reading text from {output.resolve()}")
 
         if not output.is_file():
@@ -82,9 +85,11 @@ class Tool(abc.ABC):
         """Returns a dict, holding killed count, live count, all count and score"""
         raise NotImplementedError
 
-    def get_mutation_score(self, json_output: str = None) -> float:
+    def get_mutation_score(
+        self, json_output: str = None, subdirectory: str = None
+    ) -> float:
         """Get mutation score for current testsuite and tool"""
-        output_dir = self.get_output_dir()
+        output_dir = self.get_output_dir(subdirectory)
         logger.debug(f"Output dir is {output_dir.resolve()}")
 
         score_dict = self._get_mutation_score()
@@ -100,12 +105,12 @@ class Tool(abc.ABC):
 
         return score_dict["score"]
 
-    def get_output(self):
+    def get_output(self, subdirectory: str = None):
         """Get the tool output and place it under
         the specified output directory"""
 
         # cast output dir as pathlib object
-        output_dir = self.get_output_dir()
+        output_dir = self.get_output_dir(subdirectory)
 
         # create output directory if didn't exist
         if not output_dir.exists():
