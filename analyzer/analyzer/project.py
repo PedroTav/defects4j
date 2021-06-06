@@ -369,6 +369,81 @@ class Project:
 
             logger.info(f"Got mutation score: {score}")
 
+    def get_killed_mutants(
+        self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
+    ):
+        """Get all killed mutants by the selected tools.
+        If 'tools' is None, every tool will be selected.
+        """
+        tools = self._get_tools(tools)
+        logger.info(f"Executing get_killed_mutants on tools {tools}")
+
+        if not tools:
+            logger.warning("Empty toolset, exit...")
+            return
+
+        for tool in tools:
+            logger.info(f"Start get_killed_mutants for {tool}")
+
+            # clean old target
+            self.clean()
+
+            # set entire tool testsuite
+            # if student group is set, set only that testsuite
+            # if with-dev is set, set also dev testsuite
+            self.set_tool_testsuite(tool, **kwargs)
+
+            # compile new testsuite
+            self.d4j_compile(**kwargs)
+
+            # must specify tests and class for replacement of dummy text
+            # inside bash scripts
+            if isinstance(tool, (model.Jumble, model.Pit)):
+                # class under mutation name is project relevant class
+                class_under_mutation = self.relevant_class
+
+                # if I have a Jumble tool, I must specify the list of all tests
+                if isinstance(tool, model.Jumble):
+                    tests = " ".join(self.get_tests())
+                # if I have a Pit tool, I must specify the regex of all tests
+                else:
+                    tests = "*Test*"
+
+                kwargs.update(
+                    {
+                        "tests": tests,
+                        "class": class_under_mutation,
+                    }
+                )
+
+            # execute tool
+            logger.debug(f"{tool} kwargs: {kwargs}")
+
+            # get student names
+            students_group = kwargs.get("group")
+            if students_group:
+                str_names = students_group.upper()
+            else:
+                names = list(self.get_student_names(tool))
+                str_names = "_".join(names)
+
+            # get also dev, if used
+            with_dev = kwargs.get("with_dev")
+            if with_dev:
+                str_names += "_dev"
+
+            logger.info(f"Setupping {tool}...")
+            tool.setup(**kwargs)
+            logger.info("Setup completed")
+
+            logger.info(f"Running {tool}...")
+            tool.run(**kwargs)
+            logger.info("Execution completed")
+
+            logger.info("Collecting output...")
+            tool.get_output(str_names)
+            logger.info("Output collected")
+
     def get_mutants(
         self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
     ):
