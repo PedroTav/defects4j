@@ -31,6 +31,21 @@ for handler in (stream_handler, file_handler, file_debug_handler):
     logger.addHandler(handler)
 
 
+def execute(action: str, project: Project, tool: str, **kwargs):
+    if action == "mutants":
+        return project.get_mutants(tool, **kwargs)
+    elif action == "mutscore":
+        return project.get_mutation_scores(tool, **kwargs)
+    elif action == "coverage":
+        return project.coverage(tool, **kwargs)
+    elif action == "backup":
+        return project.backup_tests()
+    elif action == "restore":
+        return project.restore_tests()
+    elif action == "killed":
+        return project.get_killed_mutants(tool, **kwargs)
+
+
 def main():
     # assure we're in a good env
     test_environment()
@@ -98,6 +113,10 @@ def main():
             logger.info("-" * SIZE)
         logger.info(f"Working on tool {tool}")
 
+        logger.info("Execution dev only")
+        execute(action, project, tool, **kwargs)
+        logger.info("-" * (SIZE // 2))
+
         student_groups = list(project.get_student_names(tool))
         logger.info(f"Found groups {student_groups}")
 
@@ -118,18 +137,7 @@ def main():
                 logger.debug(f"Kwargs passed: {kwargs_copy}")
 
                 try:
-                    if action == "mutants":
-                        project.get_mutants(tool, **kwargs_copy)
-                    elif action == "mutscore":
-                        project.get_mutation_scores(tool, **kwargs_copy)
-                    elif action == "coverage":
-                        project.coverage(tool, **kwargs_copy)
-                    elif action == "backup":
-                        project.backup_tests()
-                    elif action == "restore":
-                        project.restore_tests()
-                    elif action == "killed":
-                        project.get_killed_mutants(tool, **kwargs_copy)
+                    execute(action, project, tool, **kwargs_copy)
                 except Exception as e:
                     logger.error(f"Error raised from execution: {e}")
                     c = combination
