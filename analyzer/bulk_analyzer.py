@@ -36,7 +36,7 @@ def main():
     test_environment()
 
     # define actions and sort them automatically
-    actions = ("backup", "restore", "mutants", "coverage", "mutscore")
+    actions = ("backup", "restore", "mutants", "coverage", "mutscore", "killed")
     actions = sorted(actions)
 
     # create argument parser
@@ -77,8 +77,11 @@ def main():
     # parse action from args
     action = args.action
 
+    # check if is a valid action
+    action = str(args.action).lower()
+    action_err = f"Invalid action provided: {action}. Valid actions are: {actions}"
     if action not in actions:
-        raise ValueError(f"Invalid action provided: {action}. Valid are {actions}")
+        parser.error(action_err)
 
     # create kwargs
     kwargs = dict(
@@ -125,6 +128,8 @@ def main():
                         project.backup_tests()
                     elif action == "restore":
                         project.restore_tests()
+                    elif action == "killed":
+                        project.get_killed_mutants(tool, **kwargs_copy)
                 except Exception as e:
                     logger.error(f"Error raised from execution: {e}")
                     c = combination
