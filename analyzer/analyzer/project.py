@@ -22,6 +22,7 @@ class Project:
     """Interface of a Defects4j Project"""
 
     default_backup_tests = "dev_backup"
+    compatible_projects = ("Cli", "Gson", "Lang")
 
     def __init__(self, filepath: Union[str, os.PathLike]):
         """Create a (Defects4j compatible) Project"""
@@ -31,7 +32,7 @@ class Project:
         self.name = config["pid"]
 
         if not self.is_compatible_project():
-            msg = "Incompatible project! Use only Cli, Gson or Lang"
+            msg = f"Incompatible project! Use one of {self.compatible_projects}"
             logger.error(msg)
             raise ValueError(msg)
 
@@ -51,7 +52,7 @@ class Project:
         self.full_test_dir = self.test_dir / package_path
 
     def is_compatible_project(self):
-        return self.name in ("Cli", "Gson", "Lang")
+        return self.name in self.compatible_projects
 
     def __repr__(self):
         return f"{self.name} {self.bug}{self.bug_status.value} [fp: {self.filepath}]"
