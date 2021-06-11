@@ -114,6 +114,7 @@ def main():
         logger.info(f"Working on tool {tool}")
 
         logger.info("Execution dev only")
+        kwargs.update(with_single_dev=True, no_groups=True)
         execute(action, project, tool, **kwargs)
         logger.info("-" * (SIZE // 2))
 
@@ -124,8 +125,8 @@ def main():
             if j > 0:
                 logger.info("-" * (SIZE // 2))
             combinations = [
-                dict(group=group, with_dev=False),
-                dict(group=group, with_dev=True),
+                dict(group=group, with_single_dev=False, no_groups=False),
+                dict(group=group, with_single_dev=True, no_groups=False),
             ]
             for k, combination in enumerate(combinations):
                 if k > 0:

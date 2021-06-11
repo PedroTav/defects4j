@@ -47,7 +47,15 @@ def main():
     parser.add_argument("path", help="path to Defects4j project")
 
     parser.add_argument("--tools", help="mutation tools to use", nargs="*")
-    parser.add_argument("--group", help="students group's testsuite to use")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--group", help="students group's testsuite to use")
+    group.add_argument(
+        "--no-groups",
+        help="remove any student group from testsuite",
+        action="store_true",
+    )
+
     parser.add_argument(
         "-v", "--verbose", help="increase verbosity", action="store_true", default=False
     )
@@ -58,14 +66,21 @@ def main():
         "--stderr", help="collect tools stderr", action="store_true", default=False
     )
     parser.add_argument(
+        "--skip-setup",
+        help="skip the setup of the tool (running coverage against current testsuite)",
+        action="store_true",
+        default=False,
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--with-dev",
         help="add original dev tests to testsuite",
         action="store_true",
         default=False,
     )
-    parser.add_argument(
-        "--skip-setup",
-        help="skip the setup of the tool (running coverage against current testsuite)",
+    group.add_argument(
+        "--with-single-dev",
+        help="add the only relevant dev test to testsuite",
         action="store_true",
         default=False,
     )
@@ -103,7 +118,9 @@ def main():
         stdout=args.stdout,
         stderr=args.stderr,
         group=args.group,
+        no_groups=args.no_groups,
         with_dev=args.with_dev,
+        with_single_dev=args.with_single_dev,
         skip_setup=args.skip_setup,
     )
 
