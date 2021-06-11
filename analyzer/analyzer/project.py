@@ -50,6 +50,8 @@ class Project:
         self.package = ".".join(self.relevant_class.split(".")[:-1])
         package_path = self.package.replace(".", "/")
         self.full_test_dir = self.test_dir / package_path
+        # agreement that testclasses are in the format package.to.ClassTest
+        self.test_class = str(self.relevant_class) + "Test"
 
     def is_compatible_project(self):
         return self.name in self.compatible_projects
@@ -88,38 +90,52 @@ class Project:
         If 'group' is specified, then only that students group
         testsuite will be used."""
 
-        students = kwargs.get("group")
-        if students is None:
-            src = os.fspath(dirpath)
-        else:
-            group_pattern = re.compile(r"[a-z]+_[a-z]+_([a-z0-9]+).*", re.I)
-            students = students.upper()
-            all_found = [
-                group_pattern.match(element.name).group(1)
-                for element in pathlib.Path(dirpath).glob("*")
-            ]
-            logger.debug(f"Searching {students} in Java files")
-            fnames = list(pathlib.Path(dirpath).glob(f"*{students}*"))
-            logger.debug(f"Found {fnames}")
-            assert len(fnames) > 0, f"No match found for {students}. Found {all_found}"
-            assert len(fnames) == 1, f"More than one match found for {students}"
-            fname = fnames[0]
-            src = os.fspath(fname.resolve())
-
-        dst = os.fspath(self.full_test_dir)
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
-        logger.debug(f"Source is {src}")
-        logger.debug(f"Destination is {dst}")
+        no_groups = kwargs.get("no_groups", False)
+        logger.debug(f"Skip students' groups? {no_groups}")
+        if not no_groups:
+            students = kwargs.get("group")
+            logger.debug(f"Student group to restore: {students}")
 
-        if students is None:
-            shutil.copytree(src, dst)
-        else:
-            os.makedirs(dst)
-            shutil.copy(src, dst)
+            # if group argument is missing, take all compatible groups
+            if students is None:
+                src = os.fspath(dirpath)
+            else:
+                group_pattern = re.compile(r"[a-z]+_[a-z]+_([a-z0-9]+).*", re.I)
+                students = students.upper()
+                all_found = [
+                    group_pattern.match(element.name).group(1)
+                    for element in pathlib.Path(dirpath).glob("*")
+                ]
+                logger.debug(f"Searching {students} in Java files")
+                fnames = list(pathlib.Path(dirpath).glob(f"*{students}*"))
+                logger.debug(f"Found {fnames}")
+                assert (
+                    len(fnames) > 0
+                ), f"No match found for {students}. Found {all_found}"
+                assert len(fnames) == 1, f"More than one match found for {students}"
+                fname = fnames[0]
+                src = os.fspath(fname.resolve())
+
+            dst = os.fspath(self.full_test_dir)
+            shutil.rmtree(self.test_dir, ignore_errors=True)
+
+            logger.debug(f"Source is {src}")
+            logger.debug(f"Destination is {dst}")
+
+            if students is None:
+                shutil.copytree(src, dst)
+            else:
+                os.makedirs(dst)
+                shutil.copy(src, dst)
 
         with_dev = kwargs.get("with_dev", False)
         logger.debug(f"Restore dev tests? {with_dev}")
+
+        with_single_dev = kwargs.get("with_single_dev", False)
+        logger.debug(f"Restore only specialized dev test? {with_single_dev}")
+
         if with_dev:
             dev_test = self.test_dir.parent / self.default_backup_tests
             logger.debug(f"Dev test: {dev_test}")
@@ -129,6 +145,20 @@ class Project:
             else:
                 msg = "Dev tests doesn't exist! Did you run 'analyzer.py backup <path>' before?"
                 logger.error(msg)
+        elif with_single_dev:
+            src = (
+                self.test_dir.parent
+                / self.default_backup_tests
+                / self.test_class.replace(".", "/")
+            )
+            src = src.with_suffix(".java")
+            logger.debug(f"src is {src.resolve()}")
+
+            dst = self.full_test_dir
+            logger.debug(f"dst is {dst.resolve()}")
+
+            os.makedirs(dst, exist_ok=True)
+            shutil.copy(src, dst)
 
     def project_tests_root(self):
         """Get the root of project tests, based on project name"""
@@ -433,8 +463,11 @@ class Project:
 
             # get also dev, if used
             with_dev = kwargs.get("with_dev")
+            with_single_dev = kwargs.get("with_single_dev")
             if with_dev:
                 str_names += "_dev"
+            elif with_single_dev:
+                str_names += "_single_dev"
 
             logger.info(f"Setupping {tool}...")
             tool.setup(**kwargs)
