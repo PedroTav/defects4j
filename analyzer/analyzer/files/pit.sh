@@ -2,7 +2,8 @@
 
 HERE=$(dirname "$0")
 # suppose we are in base/work/<repo>
-BASE=$(cd $HERE/../.. && pwd)
+# BASE=$(cd $HERE/../.. && pwd)
+BASE=$(cd $(dirname $(which defects4j))/../.. && pwd)
 
 MUTATION_TOOLS=$(cd $BASE/mutation_tools && pwd)
 LIB_HOME="$MUTATION_TOOLS/lib"

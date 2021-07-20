@@ -2,7 +2,9 @@
 
 HERE=$(dirname "$0")
 # suppose we are in base/work/<repo>
-BASE=$(cd $HERE/../.. && pwd)
+# BASE=$(cd $HERE/../.. && pwd)
+BASE=$(cd $(dirname $(which defects4j))/../.. && pwd)
+
 MUTATION_TOOLS=$(cd $BASE/mutation_tools && pwd)
 JUDY=$MUTATION_TOOLS/judy-3.0.0-M1/bin/judy
 
