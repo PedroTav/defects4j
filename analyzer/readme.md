@@ -61,14 +61,35 @@ Valid values are `judy`, `jumble`, `major`, `pit`.
 If not specified, every tool will be used.
 
 #### --with-dev
-Run the selected action including the developers tests.
+Run the selected action including the developers' tests. Mutually exclusive with `--with-single-dev`.
 
-Requires an inital `backup` action to work.
+Defaults to false.
+
+#### --with-single-dev
+Run the selected action including only the single developers' test created for the relevant class under study;
+by convention class `package.to.Class` will have the test class `package.to.ClassTest`.
+Mutually exclusive with `--with-dev`.
+
+Defaults to false.
+
+#### --group
+Run the selected action with the only specified group. The precondition is
+that this group has worked with both the Project and the Tool.
+
+If this value is null, every group that worked with the Project and Tool specified will be used.
+Mutually exclusive with `--no-groups`.
+
+Defaults to null.
+
+#### --no-groups
+Run the selected action excluding all the students' tests. 
+Mutually exclusive with `--group`.
+
+Defaults to false.
 
 #### --skip-setup
 Skip the setup of the tool (i.e. overwritting current testsuite with students' one),
 executing the specified action against the current testsuite found in the right folder. 
-Works only with `coverage`.
 
 #### -v, --verbose
 Increase the verbosity of output.
