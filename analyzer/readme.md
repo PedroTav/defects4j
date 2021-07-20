@@ -65,14 +65,14 @@ Run the selected action including the developers' tests. Mutually exclusive with
 
 Defaults to false.
 
-### --with-single-dev
+#### --with-single-dev
 Run the selected action including only the single developers' test created for the relevant class under study;
 by convention class `package.to.Class` will have the test class `package.to.ClassTest`.
 Mutually exclusive with `--with-dev`.
 
 Defaults to false.
 
-### --group
+#### --group
 Run the selected action with the only specified group. The precondition is
 that this group has worked with both the Project and the Tool.
 
@@ -81,7 +81,7 @@ Mutually exclusive with `--no-groups`.
 
 Defaults to null.
 
-### --no-groups
+#### --no-groups
 Run the selected action excluding all the students' tests. 
 Mutually exclusive with `--group`.
 
