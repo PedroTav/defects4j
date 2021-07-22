@@ -171,6 +171,7 @@ echo "Setting up Pitest ... "
 PITEST_VERSION="1.6.7"
 
 PITEST_JAR_DIR="$MUTOOLS/pitest-$PITEST_VERSION-jars"
+mkdir -p "$PITEST_JAR_DIR"
 
 PITEST="https://repo1.maven.org/maven2/org/pitest/pitest/$PITEST_VERSION/pitest-$PITEST_VERSION.jar"
 PITEST_ENTRY="https://repo1.maven.org/maven2/org/pitest/pitest-entry/$PITEST_VERSION/pitest-entry-$PITEST_VERSION.jar"
