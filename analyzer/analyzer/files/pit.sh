@@ -7,13 +7,13 @@ BASE=$(cd $(dirname $(which defects4j))/../.. && pwd)
 
 MUTATION_TOOLS=$(cd $BASE/mutation_tools && pwd)
 LIB_HOME="$MUTATION_TOOLS/lib"
-PIT_HOME="$MUTATION_TOOLS/pitest-1.6.3-jars"
+PIT_HOME="$MUTATION_TOOLS/pitest-1.6.7-jars"
 
 JUNIT="$LIB_HOME/junit-4.12.jar"
 JUNITX="$LIB_HOME/junit-addons-1.4.jar"
-PITEST="$PIT_HOME/pitest-1.6.0-SNAPSHOT.jar"
-PITEST_ENTRY="$PIT_HOME/pitest-entry-1.6.0-SNAPSHOT.jar"
-PITEST_CLI="$PIT_HOME/pitest-command-line-1.6.0-SNAPSHOT.jar"
+PITEST="$PIT_HOME/pitest-1.6.7.jar"
+PITEST_ENTRY="$PIT_HOME/pitest-entry-1.6.7.jar"
+PITEST_CLI="$PIT_HOME/pitest-command-line-1.6.7.jar"
 
 CP="$JUNIT:$JUNITX:$PITEST:$PITEST_ENTRY:$PITEST_CLI"
 

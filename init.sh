@@ -27,11 +27,6 @@ if ! curl --version > /dev/null 2>&1; then
     echo "Couldn't find curl to download dependencies. Please install curl and re-run this script."
     exit 1
 fi
-# Check whether mvn is available (needed for PIT)
-if ! mvn --version > /dev/null 2>&1; then
-    echo "Couldn't find maven to install dependencies. Please install maven and re-run this script."
-    exit 1
-fi
 
 HOST_URL="https://defects4j.org/downloads"
 
@@ -172,22 +167,18 @@ cd "$MUTOOLS" && mkdir -p lib \
 #
 echo
 echo "Setting up Pitest ... "
-PITEST_VERSION="1.6.3"
-PITEST_URL="https://github.com/hcoles/pitest/archive/$PITEST_VERSION.zip"
-PITEST_NAME="pitest-$PITEST_VERSION"
-PITEST_ZIP="$PITEST_VERSION.zip"
-cd "$MUTOOLS" && download_url_and_unzip "$PITEST_URL" \
-              && rm "$PITEST_ZIP"  \
-              && cd "$PITEST_NAME" \
-              && mvn package
 
-PITEST_MVN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-PATTERN="pitest*$PITEST_MVN_VERSION.jar"
+PITEST_VERSION="1.6.7"
 
-# copy all pitest jars in another dir
-PITEST_JAR_DIR="pitest-$PITEST_VERSION-jars"
-cd "$MUTOOLS" && mkdir -p "$PITEST_JAR_DIR" \
-              && cp $(find $(pwd) -name "$PATTERN") "$PITEST_JAR_DIR"
+PITEST_JAR_DIR="$MUTOOLS/pitest-$PITEST_VERSION-jars"
+
+PITEST="https://repo1.maven.org/maven2/org/pitest/pitest/$PITEST_VERSION/pitest-$PITEST_VERSION.jar"
+PITEST_ENTRY="https://repo1.maven.org/maven2/org/pitest/pitest-entry/$PITEST_VERSION/pitest-entry-$PITEST_VERSION.jar"
+PITEST_CLI="https://repo1.maven.org/maven2/org/pitest/pitest-command-line/$PITEST_VERSION/pitest-command-line-$PITEST_VERSION.jar"
+
+cd "$PITEST_JAR_DIR" && download_url "$PITEST" \
+                     && download_url "$PITEST_ENTRY" \
+                     && download_url "$PITEST_CLI" \
 
 ################################################################################
 #
