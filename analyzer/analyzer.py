@@ -36,7 +36,7 @@ def main():
     test_environment()
 
     # define actions and sort them automatically
-    actions = ("backup", "restore", "mutants", "coverage", "mutscore", "killed")
+    actions = ("backup", "restore", "mutants", "coverage", "mutscore", "run")
     actions = sorted(actions)
 
     # create argument parser
@@ -142,8 +142,8 @@ def main():
         project.backup_tests()
     elif action == "restore":
         project.restore_tests()
-    elif action == "killed":
-        project.get_killed_mutants(tools, **kwargs)
+    elif action == "run":
+        project.run_tools(tools, **kwargs)
     else:
         raise ValueError(action_err)
 

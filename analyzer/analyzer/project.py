@@ -436,21 +436,21 @@ class Project:
 
             logger.info(f"Got mutation score: {score}")
 
-    def get_killed_mutants(
+    def run_tools(
         self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
     ):
-        """Get all killed mutants by the selected tools.
+        """Run the specified tools against the current testsuite.
         If 'tools' is None, every tool will be selected.
         """
         tools = self._get_tools(tools)
-        logger.info(f"Executing get_killed_mutants on tools {tools}")
+        logger.info(f"Executing run_tools on tools {tools}")
 
         if not tools:
             logger.warning("Empty toolset, exit...")
             return
 
         for tool in tools:
-            logger.info(f"Start get_killed_mutants for {tool}")
+            logger.info(f"Start run_tools for {tool}")
 
             # clean old target
             self.clean()

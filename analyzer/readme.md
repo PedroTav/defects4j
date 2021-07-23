@@ -29,7 +29,7 @@ This action will launch `defects4j coverage` against the student test suites rel
 to a single (or every) tool, obtaining the cobertura's coverage xmls about line and
 branch coverage of the test suite provided.
 
-### Killed
+### Run
 This action will launch specified tools against the selected testsuite, just collecting tool's output.
 
 ### Mutants

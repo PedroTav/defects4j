@@ -42,8 +42,8 @@ def execute(action: str, project: Project, tool: str, **kwargs):
         return project.backup_tests()
     elif action == "restore":
         return project.restore_tests()
-    elif action == "killed":
-        return project.get_killed_mutants(tool, **kwargs)
+    elif action == "run":
+        return project.run_tools(tool, **kwargs)
 
 
 def main():
