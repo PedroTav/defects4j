@@ -53,6 +53,9 @@ class Project:
         # agreement that testclasses are in the format package.to.ClassTest
         self.test_class = str(self.relevant_class) + "Test"
 
+        # make a backup of tests at the end of init phase
+        self.backup_tests()
+
     def is_compatible_project(self):
         return self.name in self.compatible_projects
 
