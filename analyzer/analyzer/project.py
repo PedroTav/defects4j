@@ -56,6 +56,98 @@ class Project:
         # make a backup of tests at the end of init phase
         self.backup_tests()
 
+    @property
+    def test_classes(self) -> dict[str, list]:
+        """Retrieve the relevant test classes (as found in D4J framework dir)
+        given a Project name"""
+
+        classes = {
+            "Cli": """org.apache.commons.cli.ApplicationTest
+org.apache.commons.cli.BugsTest
+org.apache.commons.cli.HelpFormatterTest
+org.apache.commons.cli.bug.BugCLI162Test
+org.apache.commons.cli.bug.BugCLI18Test""".split(),
+            "Gson": """com.google.gson.CommentsTest
+com.google.gson.DefaultDateTypeAdapterTest
+com.google.gson.DefaultInetAddressTypeAdapterTest
+com.google.gson.DefaultMapJsonSerializerTest
+com.google.gson.GsonBuilderTest
+com.google.gson.GsonTest
+com.google.gson.GsonTypeAdapterTest
+com.google.gson.JavaSerializationTest
+com.google.gson.JsonObjectTest
+com.google.gson.JsonParserTest
+com.google.gson.JsonPrimitiveTest
+com.google.gson.JsonStreamParserTest
+com.google.gson.LongSerializationPolicyTest
+com.google.gson.MixedStreamTest
+com.google.gson.ObjectTypeAdapterTest
+com.google.gson.OverrideCoreTypeAdaptersTest
+com.google.gson.functional.ArrayTest
+com.google.gson.functional.CircularReferenceTest
+com.google.gson.functional.CollectionTest
+com.google.gson.functional.ConcurrencyTest
+com.google.gson.functional.CustomDeserializerTest
+com.google.gson.functional.CustomSerializerTest
+com.google.gson.functional.CustomTypeAdaptersTest
+com.google.gson.functional.DefaultTypeAdaptersTest
+com.google.gson.functional.DelegateTypeAdapterTest
+com.google.gson.functional.EnumTest
+com.google.gson.functional.EscapingTest
+com.google.gson.functional.ExclusionStrategyFunctionalTest
+com.google.gson.functional.ExposeFieldsTest
+com.google.gson.functional.FieldExclusionTest
+com.google.gson.functional.FieldNamingTest
+com.google.gson.functional.InheritanceTest
+com.google.gson.functional.InstanceCreatorTest
+com.google.gson.functional.InterfaceTest
+com.google.gson.functional.InternationalizationTest
+com.google.gson.functional.JavaUtilConcurrentAtomicTest
+com.google.gson.functional.JavaUtilTest
+com.google.gson.functional.JsonAdapterAnnotationOnClassesTest
+com.google.gson.functional.JsonAdapterAnnotationOnFieldsTest
+com.google.gson.functional.JsonAdapterSerializerDeserializerTest
+com.google.gson.functional.JsonArrayTest
+com.google.gson.functional.JsonParserTest
+com.google.gson.functional.JsonTreeTest
+com.google.gson.functional.LeniencyTest
+com.google.gson.functional.MapAsArrayTypeAdapterTest
+com.google.gson.functional.MapTest
+com.google.gson.functional.MoreSpecificTypeSerializationTest
+com.google.gson.functional.NamingPolicyTest
+com.google.gson.functional.NullObjectAndFieldTest
+com.google.gson.functional.ObjectTest
+com.google.gson.functional.ParameterizedTypesTest
+com.google.gson.functional.PrettyPrintingTest
+com.google.gson.functional.PrimitiveCharacterTest
+com.google.gson.functional.PrimitiveTest
+com.google.gson.functional.PrintFormattingTest
+com.google.gson.functional.RawSerializationTest
+com.google.gson.functional.ReadersWritersTest
+com.google.gson.functional.RuntimeTypeAdapterFactoryFunctionalTest
+com.google.gson.functional.SecurityTest
+com.google.gson.functional.SerializedNameTest
+com.google.gson.functional.StreamingTypeAdaptersTest
+com.google.gson.functional.StringTest
+com.google.gson.functional.ThrowableFunctionalTest
+com.google.gson.functional.TreeTypeAdaptersTest
+com.google.gson.functional.TypeAdapterPrecedenceTest
+com.google.gson.functional.TypeHierarchyAdapterTest
+com.google.gson.functional.TypeVariableTest
+com.google.gson.functional.UncategorizedTest
+com.google.gson.functional.VersioningTest
+com.google.gson.internal.bind.JsonElementReaderTest
+com.google.gson.internal.bind.JsonTreeWriterTest
+com.google.gson.internal.bind.RecursiveTypesResolveTest
+com.google.gson.metrics.PerformanceTest
+com.google.gson.regression.JsonAdapterNullSafeTest
+com.google.gson.stream.JsonReaderPathTest
+com.google.gson.stream.JsonWriterTest""".split(),
+            "Lang": """org.apache.commons.lang.time.DateFormatUtilsTest
+org.apache.commons.lang.time.DateUtilsTest""".split()
+        }
+        return classes[self.name]
+
     def is_compatible_project(self):
         return self.name in self.compatible_projects
 
@@ -137,7 +229,10 @@ class Project:
         logger.debug(f"Restore dev tests? {with_dev}")
 
         with_single_dev = kwargs.get("with_single_dev", False)
-        logger.debug(f"Restore only specialized dev test? {with_single_dev}")
+        logger.debug(f"Restore only one relevant dev test? {with_single_dev}")
+
+        with_relevant_dev = kwargs.get("with_relevant_dev", False)
+        logger.debug(f"Restore all relevant dev tests? {with_relevant_dev}")
 
         if with_dev:
             dev_test = self.test_dir.parent / self.default_backup_tests
@@ -162,6 +257,21 @@ class Project:
 
             os.makedirs(dst, exist_ok=True)
             shutil.copy(src, dst)
+        elif with_relevant_dev:
+            # set the destination path
+            dst = self.test_dir
+            os.makedirs(dst, exist_ok=True)
+            logger.debug(f"dst is {dst.resolve()}")
+
+            # get the list of relevant testsuites
+            for i, test in enumerate(self.test_classes):
+                testfile = test.replace(".", "/") + ".java"
+                src_path = self.test_dir.parent / self.default_backup_tests / testfile
+                dst_path = (pathlib.Path(dst) / testfile).parent
+
+                logger.debug(f"src no {i} is {src_path.name}")
+                os.makedirs(dst_path, exist_ok=True)
+                shutil.copy(os.fspath(src_path), os.fspath(dst_path))
 
     def project_tests_root(self):
         """Get the root of project tests, based on project name"""

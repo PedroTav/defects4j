@@ -84,6 +84,12 @@ def main():
         action="store_true",
         default=False,
     )
+    group.add_argument(
+        "--with-relevant-dev",
+        help="add the relevant dev tests to testsuite",
+        action="store_true",
+        default=False,
+    )
 
     # parse user input
     args = parser.parse_args()
@@ -121,6 +127,7 @@ def main():
         no_groups=args.no_groups,
         with_dev=args.with_dev,
         with_single_dev=args.with_single_dev,
+        with_relevant_dev=args.with_relevant_dev,
         skip_setup=args.skip_setup,
     )
 
