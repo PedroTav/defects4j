@@ -11,7 +11,10 @@ in a loop, executing the specified action over all possible combinations of stud
 with that tool, with and without the developer single testclass.
 
 ## Usage
-The usage is `python3 analyzer.py <action> <path>`.
+To use Analyzer, please install the required packages via `python3 -m pip install --user requirements.txt`.
+If pip is not installed, run the command `sudo apt install python3-pip`.
+
+The usage of the module is `python3 analyzer.py <action> <path>`.
 
 Check the `--help` to see all commands.
 
