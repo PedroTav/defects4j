@@ -7,7 +7,7 @@ from analyzer.project import Project
 from analyzer.utility import test_environment
 
 # set logging format
-FORMAT = "%(levelname)s :: [%(module)s.%(funcName)s.%(lineno)d] :: %(message)s"
+FORMAT = "%(asctime)s :: %(levelname)s :: [%(module)s.%(funcName)s.%(lineno)d] :: %(message)s"
 formatter = logging.Formatter(FORMAT)
 
 # get root logger
