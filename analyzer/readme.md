@@ -63,14 +63,20 @@ Valid values are `judy`, `jumble`, `major`, `pit`.
 If not specified, every tool will be used.
 
 #### --with-dev
-Run the selected action including the developers' tests. Mutually exclusive with `--with-single-dev`.
+Run the selected action including the developers' tests. Mutually exclusive with `--with-single-dev` and `--with-relevant-dev`.
 
 Defaults to false.
 
 #### --with-single-dev
 Run the selected action including only the single developers' test created for the relevant class under study;
 by convention class `package.to.Class` will have the test class `package.to.ClassTest`.
-Mutually exclusive with `--with-dev`.
+Mutually exclusive with `--with-dev` and `--with-relevant-dev`.
+
+Defaults to false.
+
+#### --with-relevant-dev
+Run the selected action including the relevant developers' tests, found inside `files/<project>/relevant/tests.txt`.
+Mutually exclusive with `--with-dev` and `--with-single-dev`.
 
 Defaults to false.
 
