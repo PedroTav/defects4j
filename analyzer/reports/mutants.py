@@ -58,6 +58,7 @@ class MutantWithCounter(Mutant):
 
 class JudyMutant(MutantWithCounter):
     operator: str
+    points: int
 
     def __repr__(self):
         return "Judy" + super(JudyMutant, self).__repr__()
@@ -68,11 +69,12 @@ class JudyMutant(MutantWithCounter):
     @classmethod
     def from_dict(cls, thedict: dict) -> "JudyMutant":
         operator = thedict["operators"][0]
-        # points = thedict["points"][0]
+        points = thedict["points"][0]
         line = thedict["lines"][0]
 
         mutant = cls(int(line))
         mutant.operator = operator
+        mutant.points = int(points)
         mutant.get_hash_count()
 
         return mutant
@@ -80,6 +82,7 @@ class JudyMutant(MutantWithCounter):
 
 class JumbleMutant(MutantWithCounter):
     description: str
+    class_under_mutation: str
 
     def __repr__(self):
         return "Jumble" + super(JumbleMutant, self).__repr__()
@@ -89,8 +92,9 @@ class JumbleMutant(MutantWithCounter):
 
     @classmethod
     def from_tuple(cls, thetuple: tuple) -> "JumbleMutant":
-        classpath, line, description = thetuple
+        theclass, line, description = thetuple
         mutant = cls(int(line))
+        mutant.class_under_mutation = theclass
         mutant.description = description
         mutant.get_hash_count()
 

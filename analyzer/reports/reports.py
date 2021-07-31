@@ -8,11 +8,16 @@ from collections import Counter
 from typing import List, Optional, Set, Union
 
 import pandas as pd
-from src.mutants.mutants import JudyMutant, JumbleMutant, MajorMutant, Mutant, PitMutant
+from reports.mutants import JudyMutant, JumbleMutant, MajorMutant, Mutant, PitMutant
 
 
 class ReportError(Exception):
     """Base report error"""
+
+
+class MultipleClassUnderMutationError(Exception):
+    """Only a class under mutation at time can be analyzed
+    because of Jumble - working on a single class at time"""
 
 
 class MissingMutantCountException(ReportError):
@@ -61,6 +66,8 @@ class WrongTagInPitReportError(PitReportError):
 
 
 class Report(ABC):
+    class_under_mutation: str
+
     def __init__(self):
         self._created_at = datetime.datetime.now()
 
@@ -69,12 +76,13 @@ class Report(ABC):
         self._killed_mutants_count: Optional[int] = None
         self._live_mutants_count: Optional[int] = None
 
-    def summary(self, mutants: bool = False) -> str:
+    def summary(self, print_mutants: bool = False) -> str:
         buffer = [
-            f"Report created at {self._created_at}",
-            f"Total mutants count: {self.total_mutants_count}",
+            f"Report created at:    {self._created_at}",
+            f"Mutated class:        {self.class_under_mutation}",
+            f"Total mutants count:  {self.total_mutants_count}",
             f"Killed mutants count: {self.killed_mutants_count}",
-            f"Live mutants count: {self.live_mutants_count}",
+            f"Live mutants count:   {self.live_mutants_count}",
         ]
 
         for mutants_arr, mutants_str in zip(
@@ -82,7 +90,7 @@ class Report(ABC):
         ):
             if mutants_arr:
                 buffer.append(f"{mutants_str} mutants report:")
-                if mutants:
+                if print_mutants:
                     buffer.append("\n".join(str(m) for m in mutants_arr))
                 else:
                     buffer.append("< SNIP >")
@@ -135,15 +143,16 @@ class Report(ABC):
 
     def __repr__(self):
         return (
-            f"Report(killed_count={self.killed_mutants_count},"
+            f"Report(class_under_mutation={self.class_under_mutation},"
+            f" killed_count={self.killed_mutants_count},"
             f" live_count={self.live_mutants_count},"
             f" total_count={self.total_mutants_count})"
         )
 
 
-class ReportSingleFile(Report):
+class SingleFileReport(Report):
     def __init__(self, filepath: Union[str, os.PathLike], **kwargs):
-        super(ReportSingleFile, self).__init__()
+        super(SingleFileReport, self).__init__()
 
         self.filepath = filepath
         self.extract(**kwargs)
@@ -153,15 +162,15 @@ class ReportSingleFile(Report):
     def extract(self, **kwargs):
         raise NotImplementedError
 
-    def summary(self, mutants: bool = False) -> str:
-        summary = super(ReportSingleFile, self).summary()
+    def summary(self, print_mutants: bool = False) -> str:
+        summary = super(SingleFileReport, self).summary()
         fp = str(self.filepath)
         return f"{summary}\nFilepath: {fp}"
 
 
-class ReportMultipleFiles(Report):
+class MultipleFilesReport(Report):
     def __init__(self, *filepaths: Union[str, os.PathLike], **kwargs):
-        super(ReportMultipleFiles, self).__init__()
+        super(MultipleFilesReport, self).__init__()
 
         self.filepaths = list(filepaths)
         self.extract_multiple(**kwargs)
@@ -171,20 +180,16 @@ class ReportMultipleFiles(Report):
     def extract_multiple(self, **kwargs):
         raise NotImplementedError
 
-    def summary(self, mutants: bool = False) -> str:
-        summary = super(ReportMultipleFiles, self).summary()
+    def summary(self, print_mutants: bool = False) -> str:
+        summary = super(MultipleFilesReport, self).summary()
         fps = [str(fp) for fp in self.filepaths]
         return f"{summary}\nFilepaths: {fps}"
 
 
-class JudyReport(ReportSingleFile):
-    class_under_mutation: str
-
+class JudyReport(SingleFileReport):
     def __init__(self, filepath: Union[str, os.PathLike], class_under_mutation: str):
         self.class_under_mutation = class_under_mutation
-        super(JudyReport, self).__init__(
-            filepath, class_under_mutation=class_under_mutation
-        )
+        super(JudyReport, self).__init__(filepath)
 
     def __repr__(self):
         return "Judy" + super(JudyReport, self).__repr__()
@@ -215,12 +220,15 @@ class JudyReport(ReportSingleFile):
         ]
 
 
-class JumbleReport(ReportSingleFile):
+class JumbleReport(SingleFileReport):
     def __repr__(self):
         return "Jumble" + super(JumbleReport, self).__repr__()
 
     def extract(self, **kwargs):
         content = open(self.filepath).read()
+
+        class_pattern = re.compile(r"Mutating (.+)")
+        self.class_under_mutation = class_pattern.search(content).group(1)
 
         fail_pattern = re.compile(r"M FAIL:\s*([a-zA-Z.]+):(\d+):\s*(.+)")
         start_pattern = re.compile(
@@ -252,7 +260,7 @@ class JumbleReport(ReportSingleFile):
         assert self.live_mutants_count == live_mutants_count
 
 
-class MajorReport(ReportMultipleFiles):
+class MajorReport(MultipleFilesReport):
     def __init__(
         self,
         mutation_log_fp: Union[str, os.PathLike],
@@ -310,16 +318,25 @@ class MajorReport(ReportMultipleFiles):
 
         self.live_mutants = []
         self.killed_mutants = []
+        classes = []
 
         for index, row in df.iterrows():
             mutant = MajorMutant.from_series(row)
+            cls = mutant.signature.split("@")[0]  # get the left part of class@method
+            cls = cls.split("$")[0]  # get the left part of class$subclass
+            classes.append(cls)
             if mutant.status == "LIVE":
                 self.live_mutants.append(mutant)
             else:
                 self.killed_mutants.append(mutant)
 
+        if len(set(classes)) > 1:
+            raise MultipleClassUnderMutationError("Multiple classes mutated!")
+        else:
+            self.class_under_mutation = set(classes).pop()
 
-class PitReport(ReportSingleFile):
+
+class PitReport(SingleFileReport):
     def __repr__(self):
         return "Pit" + super(PitReport, self).__repr__()
 
@@ -330,6 +347,7 @@ class PitReport(ReportSingleFile):
 
         self.live_mutants = []
         self.killed_mutants = []
+        classes = []
 
         for element in elements:
             if element.tag != "mutation":
@@ -337,7 +355,13 @@ class PitReport(ReportSingleFile):
                 raise WrongTagInPitReportError(msg)
 
             mutant = PitMutant.from_xml_element(element)
+            classes.append(mutant.mutated_class)
             if mutant.detected:
                 self.killed_mutants.append(mutant)
             else:
                 self.live_mutants.append(mutant)
+
+        if len(set(classes)) > 1:
+            raise MultipleClassUnderMutationError("Multiple classes mutated!")
+        else:
+            self.class_under_mutation = set(classes).pop()
