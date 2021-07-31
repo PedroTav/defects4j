@@ -187,7 +187,7 @@ class SingleFileReport(Report):
         raise NotImplementedError
 
     def summary(self, print_mutants: bool = False) -> str:
-        summary = super(SingleFileReport, self).summary()
+        summary = super(SingleFileReport, self).summary(print_mutants=print_mutants)
         fp = str(self.filepath)
         return f"{summary}\nFilepath: {fp}"
 
@@ -208,7 +208,7 @@ class MultipleFilesReport(Report):
         raise NotImplementedError
 
     def summary(self, print_mutants: bool = False) -> str:
-        summary = super(MultipleFilesReport, self).summary()
+        summary = super(MultipleFilesReport, self).summary(print_mutants=print_mutants)
         fps = [str(fp) for fp in self.filepaths]
         return f"{summary}\nFilepaths: {fps}"
 
