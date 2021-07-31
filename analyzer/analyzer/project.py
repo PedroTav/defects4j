@@ -6,7 +6,7 @@ import re
 import shutil
 from typing import Generator, Sequence, Union
 
-from analyzer import model, utility
+from analyzer import tools, utility
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,11 @@ class Project:
         given a Project name"""
 
         fname = f"{self.name.lower()}_tests"
-        relevant_file = model.FILES / fname / "relevant" / "tests.txt"
+        relevant_file = tools.FILES / fname / "relevant" / "tests.txt"
         if not relevant_file.is_file():
-            raise FileNotFoundError(f"Missing relevant tests from {fname}: {relevant_file}")
+            raise FileNotFoundError(
+                f"Missing relevant tests from {fname}: {relevant_file}"
+            )
 
         tests = open(relevant_file).read().split()
         return tests
@@ -201,19 +203,19 @@ class Project:
             Gson="gson_tests",
             Lang="lang_tests",
         )
-        return model.FILES / tests[self.name]
+        return tools.FILES / tests[self.name]
 
     def set_dummy_testsuite(self):
         """Set dummy as project testsuite"""
         root = self.project_tests_root()
         return self._set_dir_testsuite(root / "dummy")
 
-    def set_tool_testsuite(self, tool: model.Tool, **kwargs):
+    def set_tool_testsuite(self, tool: tools.Tool, **kwargs):
         """Set <tool_name> as project testsuite"""
         root = self.project_tests_root()
         return self._set_dir_testsuite(root / tool.name, **kwargs)
 
-    def get_student_names(self, tool: model.Tool) -> Generator:
+    def get_student_names(self, tool: tools.Tool) -> Generator:
         """Get students' names from formatted java-filename"""
         root = self.project_tests_root()
         tool_dir = root / tool.name
@@ -276,23 +278,23 @@ class Project:
         """Execute defects4j coverage"""
         return self._execute_defects4j_cmd("coverage", **kwargs)
 
-    def _get_tools(self, tools: Union[model.Tool, Sequence[model.Tool]] = None):
+    def _get_tools(self, tools: Union[tools.Tool, Sequence[tools.Tool]] = None):
         # if None, take every tool
         if tools is None:
             tools = [
-                model.Judy(self.filepath),
-                model.Jumble(self.filepath),
-                model.Major(self.filepath),
-                model.Pit(self.filepath),
+                tools.Judy(self.filepath),
+                tools.Jumble(self.filepath),
+                tools.Major(self.filepath),
+                tools.Pit(self.filepath),
             ]
 
         # if one tool is given, create list
-        if isinstance(tools, model.Tool):
+        if isinstance(tools, tools.Tool):
             tools = [tools]
 
         return tools
 
-    def coverage(self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs):
+    def coverage(self, tools: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs):
         """Execute coverage for selected tools.
         If 'tools' is None, every tool will be selected.
         """
@@ -349,7 +351,7 @@ class Project:
                 logger.warning(msg)
 
     def get_mutation_scores(
-        self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
+        self, tools: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
     ):
         """Get mutation scores for the selected tools.
         If 'tools' is None, every tool will be selected.
@@ -381,12 +383,12 @@ class Project:
 
             # must specify tests and class for replacement of dummy text
             # inside bash scripts
-            if isinstance(tool, (model.Jumble, model.Pit)):
+            if isinstance(tool, (tools.Jumble, tools.Pit)):
                 # class under mutation name is project relevant class
                 class_under_mutation = self.relevant_class
 
                 # if I have a Jumble tool, I must specify the list of all tests
-                if isinstance(tool, model.Jumble):
+                if isinstance(tool, tools.Jumble):
                     tests = " ".join(self.get_tests())
                 # if I have a Pit tool, I must specify the regex of all tests
                 else:
@@ -437,7 +439,7 @@ class Project:
             logger.info(f"Got mutation score: {score}")
 
     def run_tools(
-        self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
+        self, tools: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
     ):
         """Run the specified tools against the current testsuite.
         If 'tools' is None, every tool will be selected.
@@ -465,12 +467,12 @@ class Project:
 
             # must specify tests and class for replacement of dummy text
             # inside bash scripts
-            if isinstance(tool, (model.Jumble, model.Pit)):
+            if isinstance(tool, (tools.Jumble, tools.Pit)):
                 # class under mutation name is project relevant class
                 class_under_mutation = self.relevant_class
 
                 # if I have a Jumble tool, I must specify the list of all tests
-                if isinstance(tool, model.Jumble):
+                if isinstance(tool, tools.Jumble):
                     tests = " ".join(self.get_tests())
                 # if I have a Pit tool, I must specify the regex of all tests
                 else:
@@ -516,7 +518,7 @@ class Project:
             logger.info("Output collected")
 
     def get_mutants(
-        self, tools: Union[model.Tool, Sequence[model.Tool]] = None, **kwargs
+        self, tools: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
     ):
         """Get all mutants generated by the selected tools.
         If 'tools' is None, every tool will be selected.
@@ -547,7 +549,7 @@ class Project:
         for tool in tools:
             # must specify tests and class for replacement of dummy text
             # inside bash scripts
-            if isinstance(tool, (model.Jumble, model.Pit)):
+            if isinstance(tool, (tools.Jumble, tools.Pit)):
                 kwargs.update(
                     {
                         "tests": dummy_test,
