@@ -10,6 +10,15 @@ from typing import List, Optional, Set, Union
 import pandas as pd
 from reports.mutants import JudyMutant, JumbleMutant, MajorMutant, Mutant, PitMutant
 
+ERR_EXTRACT = (
+    "An exception was raised when extracting the content of {fp}.\n"
+    "Maybe this is the wrong file for this Report?"
+)
+ERR_EXTRACT_MULT = (
+    "An exception was raised when extracting the contents of {fps}.\n"
+    "Maybe these are the wrong files for this Report?"
+)
+
 
 class ReportError(Exception):
     """Base report error"""
@@ -151,11 +160,14 @@ class Report(ABC):
 
 
 class SingleFileReport(Report):
-    def __init__(self, filepath: Union[str, os.PathLike], **kwargs):
+    def __init__(self, filepath: Union[str, os.PathLike]):
         super(SingleFileReport, self).__init__()
 
         self.filepath = filepath
-        self.extract(**kwargs)
+        try:
+            self.extract()
+        except Exception:
+            raise ReportError(ERR_EXTRACT.format(fp=self.filepath))
 
         self.sanity_check()
 
@@ -169,11 +181,14 @@ class SingleFileReport(Report):
 
 
 class MultipleFilesReport(Report):
-    def __init__(self, *filepaths: Union[str, os.PathLike], **kwargs):
+    def __init__(self, *filepaths: Union[str, os.PathLike]):
         super(MultipleFilesReport, self).__init__()
 
         self.filepaths = list(filepaths)
-        self.extract_multiple(**kwargs)
+        try:
+            self.extract_multiple()
+        except Exception:
+            raise ReportError(ERR_EXTRACT_MULT.format(fps=self.filepaths))
 
         self.sanity_check()
 
@@ -194,7 +209,7 @@ class JudyReport(SingleFileReport):
     def __repr__(self):
         return "Judy" + super(JudyReport, self).__repr__()
 
-    def extract(self, **kwargs):
+    def extract(self):
         judy_dict = json.loads(open(self.filepath).read())
 
         thedict = [
@@ -224,7 +239,7 @@ class JumbleReport(SingleFileReport):
     def __repr__(self):
         return "Jumble" + super(JumbleReport, self).__repr__()
 
-    def extract(self, **kwargs):
+    def extract(self):
         content = open(self.filepath).read()
 
         class_pattern = re.compile(r"Mutating (.+)")
@@ -271,7 +286,7 @@ class MajorReport(MultipleFilesReport):
     def __repr__(self):
         return "Major" + super(MajorReport, self).__repr__()
 
-    def extract_multiple(self, **kwargs):
+    def extract_multiple(self):
         if len(self.filepaths) != 2:
             raise MajorReportError(
                 "Two files must be provided! kill.csv and mutants.log"
@@ -340,7 +355,7 @@ class PitReport(SingleFileReport):
     def __repr__(self):
         return "Pit" + super(PitReport, self).__repr__()
 
-    def extract(self, **kwargs):
+    def extract(self):
         tree = ET.parse(self.filepath)
         root = tree.getroot()
         elements: List[ET.Element] = list(root)
