@@ -30,32 +30,6 @@ def check_pattern(arg_value: str, pattern: re.Pattern):
 # make partial function with pattern already set
 check_bug_pattern = partial(check_pattern, pattern=re.compile(r"\d+"))
 
-# constants
-TOOLS = ["judy", "jumble", "major", "pit"]
-TOOLS_CLASSES = {
-    "judy": JudyReport,
-    "jumble": JumbleReport,
-    "major": MajorReport,
-    "pit": PitReport,
-}
-
-PROJECT_HELP = "The report's Defects4J project"
-BUG_HELP = "The project bug id; must be a numeric value"
-TOOL_HELP = "The mutation tool to which the reports to study belong"
-FILES_HELP = (
-    "The space-separated list of reports to study;"
-    " if working with a multiple files report, provide its directory"
-)
-ERR_MULT_CLASSES = (
-    "Can work with only one mutated class at time! "
-    "This combination of project and bug have {n} "
-    "modified classes, that are {l}"
-)
-ERR_CLASS = "Report class under mutation is {rep_cls}, but it should be {cls}!"
-ERR_EXP_DIR = "Was expecting a directory, but found a file!"
-ERR_EXP_FILE = "Was expecting a file, but found a directory!"
-ERR_EXP_MULT_FILES = "Was expecting 2 or more files, but found {n}!"
-
 
 def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Report]:
     # get modified classes from defects4j framework
@@ -82,7 +56,7 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
             f"{tool_cls} is neither single file nor multiple files report!"
         )
 
-    reports = []
+    parsed_reports = []
 
     for file in files:
         # convert the file to a Path object
@@ -119,27 +93,80 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
                 )
             )
 
-        reports.append(report)
+        parsed_reports.append(report)
 
-    return reports
+    return parsed_reports
+
+
+# command functions
+# summary
+def print_summary(reports: List[Report], **kwargs):
+    verbose = kwargs.get("verbose", False)
+    print("\n\n".join([rep.summary(print_mutants=verbose) for rep in reports]))
+
+
+# constants
+TOOLS = ["judy", "jumble", "major", "pit"]
+TOOLS_CLASSES = {
+    "judy": JudyReport,
+    "jumble": JumbleReport,
+    "major": MajorReport,
+    "pit": PitReport,
+}
+COMMANDS = {"summary": print_summary}
+
+HELP_COMMANDS = "Specify the command to execute, then exit"
+HELP_PROJECT = "The report's Defects4J project"
+HELP_BUG = "The project bug id; must be a numeric value"
+HELP_TOOL = "The mutation tool to which the reports to study belong"
+HELP_FILES = (
+    "The space-separated list of reports to study;"
+    " if working with a multiple files report, provide its directory"
+)
+
+ERR_NO_CMD = "Must provide a command to run!"
+ERR_MULT_CLASSES = (
+    "Can work with only one mutated class at time! "
+    "This combination of project and bug have {n} "
+    "modified classes, that are {l}"
+)
+ERR_CLASS = "Report class under mutation is {rep_cls}, but it should be {cls}!"
+ERR_EXP_DIR = "Was expecting a directory, but found a file!"
+ERR_EXP_FILE = "Was expecting a file, but found a directory!"
+ERR_EXP_MULT_FILES = "Was expecting 2 or more files, but found {n}!"
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-p", "--project", help=PROJECT_HELP, required=True)
+    # specify the arguments to parse Defects4J project and bug's modified classes
+    parser.add_argument("-p", "--project", help=HELP_PROJECT, required=True)
     parser.add_argument(
-        "-b", "--bug", help=BUG_HELP, type=check_bug_pattern, required=True
+        "-b", "--bug", help=HELP_BUG, type=check_bug_pattern, required=True
     )
-    parser.add_argument("-t", "--tool", help=TOOL_HELP, choices=TOOLS, required=True)
 
-    parser.add_argument("files", help=FILES_HELP, nargs="+")
+    # specify the single tool to use
+    parser.add_argument("-t", "--tool", help=HELP_TOOL, choices=TOOLS, required=True)
 
+    # specify the list of files to parse into reports
+    parser.add_argument("-f", "--files", help=HELP_FILES, nargs="+", required=True)
+
+    # specify the command to launch
+    parser.add_argument(
+        "-c", "--command", help=HELP_COMMANDS, choices=COMMANDS.keys(), required=True
+    )
+
+    # increase verbosity
+    parser.add_argument("-v", "--verbose", help=HELP_BUG, action="store_true")
+
+    # parse args
     args = parser.parse_args()
 
+    # get the reports
     _reports = get_reports(
         project=args.project, bug=args.bug, tool=args.tool, files=args.files
     )
 
-    for r in _reports:
-        print(r.summary(), "\n")
+    # then execute the command specified
+    func = COMMANDS[args.command]
+    func(_reports, verbose=args.verbose)
