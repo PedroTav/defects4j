@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import pandas as pd
 from reports.reports import Report
@@ -14,18 +14,29 @@ class TooFewReportsProvidedError(CommandError):
     reports where provided, where Y < X"""
 
 
-ERR_TOO_FEW = "Too few reports were provided!"
-ERR_TOO_FEW_N = ERR_TOO_FEW + " Please provide at least {n}"
-
-
 class NullListFoundInReportError(CommandError):
     """Error raised when a null list is met while
     working in a command; an empty list is fine"""
 
 
+class NullMutantsFoundInBaseRowError(CommandError):
+    """Error raised when a supposedly base row
+    for commands like effectiveness has nan elements,
+    meaning that there are mutants in other reports
+    that do not appears in this base row"""
+
+
+ERR_TOO_FEW = "Too few reports were provided!"
+ERR_TOO_FEW_N = ERR_TOO_FEW + " Please provide at least {n} of them"
+
 ERR_NULL_LIST = (
     "Found one or more null lists! "
     "Maybe this report doesn't allow the extraction of this kind of mutants?"
+)
+
+ERR_NULL_BASE_ROW = (
+    "Found one or more null mutants in base row!"
+    "Other reports should be made with the base testsuite and one or more test"
 )
 
 
@@ -79,7 +90,7 @@ class Command(ABC):
         in parser when passing kwargs to command to execute"""
         return [arg.get_dest() for arg in cls.get_arguments()]
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> Any:
         """The main method to run; it will
         perform the desired command over the
         list of reports"""
@@ -112,7 +123,7 @@ class SummaryCommand(Command):
             )
         ]
 
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> str:
         print_mutants = kwargs.get("verbose", False)
         summaries = [rep.summary(print_mutants=print_mutants) for rep in self.reports]
         thestring = "\n\n".join(summaries)
@@ -120,61 +131,38 @@ class SummaryCommand(Command):
         return thestring
 
 
-class EffectivenessCommand(Command):
+class MutantsTableCommand(Command):
     def __repr__(self):
-        return "Effectiveness" + super(EffectivenessCommand, self).__repr__()
+        return "MutantsTable" + super(MutantsTableCommand, self).__repr__()
 
     @classmethod
     def get_name(cls) -> str:
-        return "effectiveness"
+        return "table"
 
     @classmethod
     def get_help(cls) -> Optional[str]:
-        return (
-            "Get the effectiveness of the reports"
-            " using one as base; provides at least two reports"
-        )
+        return "Get the mutants' table of the provided reports"
 
     @classmethod
     def get_arguments(cls) -> List[Argument]:
         return [
             Argument(
-                "--base-index",
-                help="The zero-based index of the report to use as base in "
-                "the list of provided reports. "
-                "If missing or negative, the first will be used;"
-                "if too big, the last will be used",
-                type=int,
-                default=0,
-            ),
-            Argument(
                 "--killed",
                 help="Use killed mutants instead of live mutants for computations",
                 action="store_true",
             ),
+            Argument(
+                "-o",
+                "--output",
+                help="Where to write table in csv format; "
+                "if missing, table will be printed to stdout",
+            ),
         ]
 
-    def execute(self, *args, **kwargs):
-        n = len(self.reports)
-        min_reports_count = 2
-        if n < min_reports_count:
-            raise TooFewReportsProvidedError(ERR_TOO_FEW_N.format(n=min_reports_count))
-
-        # if I'm here, the number of reports is ok,
-        # so I get the index of the base report to use
-        base_index = kwargs.get("base_index", 0)
-
-        # clip negative values to 0
-        base_index = max(base_index, 0)
-
-        # clip bigger values to n
-        base_index = min(base_index, n - 1)
-
-        # take base report
-        _ = self.reports[base_index]
-
-        # transform every report in series
-        use_killed_mutants = kwargs.get("killed", False)
+    def get_table(self, use_killed_mutants: bool):
+        """Utility method to get the mutations table;
+        it can be used by other commands too as an
+        intermediate product"""
 
         series_list = []
         for report in self.reports:
@@ -193,8 +181,105 @@ class EffectivenessCommand(Command):
 
         df = pd.DataFrame(series_list)
         df.index.name = "Report hash"
-        print(df)
+
+        return df
+
+    def execute(self, *args, **kwargs) -> pd.DataFrame:
+        # transform every report in series
+        use_killed_mutants = kwargs.get("killed", False)
+
+        df = self.get_table(use_killed_mutants=use_killed_mutants)
+
+        output: str = kwargs.get("output")
+        if output:
+            if not output.endswith(".csv"):
+                output += ".csv"
+            df.to_csv(output)
+        else:
+            print(df)
+
+        return df
 
 
-COMMANDS = [SummaryCommand, EffectivenessCommand]
+class EffectivenessCommand(Command):
+    @classmethod
+    def get_name(cls) -> str:
+        return "effectiveness"
+
+    @classmethod
+    def get_help(cls) -> Optional[str]:
+        return (
+            "Get the effectiveness of the reports"
+            " using one as base; provides at least two reports."
+            " Live mutants will be used for the calculations"
+        )
+
+    @classmethod
+    def get_arguments(cls) -> List[Argument]:
+        return [
+            Argument(
+                "--base-index",
+                help="The zero-based index of the report to use as base in "
+                "the list of provided reports. "
+                "If missing or negative, the first will be used;"
+                "if too big, the last will be used",
+                type=int,
+                default=0,
+            ),
+            Argument(
+                "-o",
+                "--output",
+                help="Where to write table in csv format; "
+                "if missing, table will be printed to stdout",
+            ),
+        ]
+
+    def execute(self, *args, **kwargs) -> pd.DataFrame:
+        n = len(self.reports)
+        min_reports_count = 2
+        if n < min_reports_count:
+            raise TooFewReportsProvidedError(ERR_TOO_FEW_N.format(n=min_reports_count))
+
+        # get the base table from other command - reuse code
+        base_table = MutantsTableCommand(self.reports).get_table(
+            use_killed_mutants=False
+        )
+
+        # if I'm here, the number of reports is ok,
+        # so I get the index of the base report to use
+        base_index = kwargs.get("base_index", 0)
+
+        # clip negative values to 0
+        base_index = max(base_index, 0)
+
+        # clip bigger values to n
+        base_index = min(base_index, n - 1)
+
+        # take the base row as row of dataframe parsed
+        base_row: pd.Series = base_table.iloc[base_index]
+
+        # precondition is that the number of unique mutants must be equal for every row
+        # and that is true because nans will be added accordingly;
+        # furthermore, to calculate the effectiveness, we mustn't have nans in base row,
+        # because if there is a nan, there is a live mutant in report i that is not found in base
+        if base_row.hasnans:
+            raise NullMutantsFoundInBaseRowError(ERR_NULL_BASE_ROW)
+
+        # count elements on rows
+        df = pd.DataFrame(base_table.count(axis=1), columns=["live_count"])
+        df["live_total_count"] = df["live_count"].max()
+        df["effectiveness"] = 1 - df["live_count"] / df["live_count"].max()
+
+        output: str = kwargs.get("output")
+        if output:
+            if not output.endswith(".csv"):
+                output += ".csv"
+            df.to_csv(output)
+        else:
+            print(df)
+
+        return df
+
+
+COMMANDS = [SummaryCommand, MutantsTableCommand, EffectivenessCommand]
 COMMANDS_BY_NAME = {cmd.get_name().lower(): cmd for cmd in COMMANDS}
