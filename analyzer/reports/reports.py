@@ -1,6 +1,8 @@
 import datetime
+import hashlib
 import json
 import os
+import pathlib
 import re
 import xml.etree.ElementTree as ET
 from abc import ABC
@@ -92,7 +94,7 @@ class Report(ABC):
     def summary(self, print_mutants: bool = False) -> str:
         mutscore = self.killed_mutants_count / self.total_mutants_count
         buffer = [
-            f"{self.__class__.__name__} Summary",
+            f"{self.__class__.__name__} Summary [Hash: {hash(self)}]",
             f"Report created at:    {self._created_at}",
             f"Mutated class:        {self.class_under_mutation}",
             f"Total mutants count:  {self.total_mutants_count}",
@@ -175,13 +177,19 @@ class SingleFileReport(Report):
     def __init__(self, filepath: Union[str, os.PathLike]):
         super(SingleFileReport, self).__init__()
 
-        self.filepath = filepath
+        self.filepath = pathlib.Path(filepath)
         try:
             self.extract()
         except Exception:
             raise ReportError(ERR_EXTRACT.format(fp=self.filepath))
 
         self.sanity_check()
+
+    def __hash__(self):
+        s = str(self.filepath.resolve()).encode("utf-8")
+        h = hashlib.md5(s)
+        d = h.hexdigest()
+        return int(d, base=16)
 
     def extract(self, **kwargs):
         raise NotImplementedError
@@ -196,13 +204,19 @@ class MultipleFilesReport(Report):
     def __init__(self, *filepaths: Union[str, os.PathLike]):
         super(MultipleFilesReport, self).__init__()
 
-        self.filepaths = list(filepaths)
+        self.filepaths = [pathlib.Path(fp) for fp in filepaths]
         try:
             self.extract_multiple()
         except Exception:
             raise ReportError(ERR_EXTRACT_MULT.format(fps=self.filepaths))
 
         self.sanity_check()
+
+    def __hash__(self):
+        s = b"_".join(str(fp.resolve()).encode("utf-8") for fp in self.filepaths)
+        h = hashlib.md5(s)
+        d = h.hexdigest()
+        return int(d, base=16)
 
     def extract_multiple(self, **kwargs):
         raise NotImplementedError
