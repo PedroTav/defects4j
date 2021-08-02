@@ -175,11 +175,11 @@ class MutantsTableCommand(Command):
             data = thelist
             hash_data = [hash(mutant) for mutant in data]
 
-            series = pd.Series(data=data, index=hash_data, name=hash(report))
+            series = pd.Series(data=data, index=hash_data, name=report.hash_string())
             series_list.append(series)
 
-        df = pd.DataFrame(series_list)
-        df.index.name = "Report hash"
+        df = pd.DataFrame(series_list).T
+        df.index.name = "Mutant"
 
         return df
 
@@ -254,20 +254,22 @@ class EffectivenessCommand(Command):
         # clip bigger values to n
         base_index = min(base_index, n - 1)
 
-        # take the base row as row of dataframe parsed
-        base_row: pd.Series = base_table.iloc[base_index]
+        # take the base column from the parsed dataframe
+        base_column: pd.Series = base_table[base_table.columns[base_index]]
 
         # precondition is that the number of unique mutants must be equal for every row
         # and that is true because nans will be added accordingly;
         # furthermore, to calculate the effectiveness, we mustn't have nans in base row,
         # because if there is a nan, there is a live mutant in report i that is not found in base
-        if base_row.hasnans:
+        if base_column.hasnans:
             raise NullMutantsFoundInBaseRowError(ERR_NULL_BASE_ROW)
+        else:
+            total_count = base_column.count()
 
         # count elements on rows
-        df = pd.DataFrame(base_table.count(axis=1), columns=["live_count"])
-        df["live_total_count"] = df["live_count"].max()
-        df["effectiveness"] = 1 - df["live_count"] / df["live_count"].max()
+        df = pd.DataFrame(base_table.count(), columns=["live_count"])
+        df["live_total_count"] = total_count
+        df["effectiveness"] = 1 - df["live_count"] / total_count
 
         output: str = kwargs.get("output")
         if output:
