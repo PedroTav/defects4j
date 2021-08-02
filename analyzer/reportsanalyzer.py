@@ -4,6 +4,7 @@ import re
 from functools import partial
 from typing import List
 
+from reports.commands import COMMANDS, COMMANDS_BY_NAME
 from reports.reports import (
     JudyReport,
     JumbleReport,
@@ -98,13 +99,6 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
     return parsed_reports
 
 
-# command functions
-# summary
-def print_summary(reports: List[Report], **kwargs):
-    verbose = kwargs.get("verbose", False)
-    print("\n\n".join([rep.summary(print_mutants=verbose) for rep in reports]))
-
-
 # constants
 TOOLS = ["judy", "jumble", "major", "pit"]
 TOOLS_CLASSES = {
@@ -113,9 +107,6 @@ TOOLS_CLASSES = {
     "major": MajorReport,
     "pit": PitReport,
 }
-COMMANDS = ["summary"]
-HELP_CMD_SUMMARY = "For each report print its summary, then exit"
-HELP_CMD_SUMMARY_VERB = "Increase summary verbosity, printing killed and live mutants"
 
 HELP_PROJECT = "The report's Defects4J project"
 HELP_BUG = "The project bug id; must be a numeric value"
@@ -150,19 +141,21 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--tool", help=HELP_TOOL, choices=TOOLS, required=True)
 
     # specify the list of files to parse into reports
-    parser.add_argument("-f", "--files", help=HELP_FILES, nargs="+", required=True)
+    parser.add_argument(
+        "-f", "--files", help=HELP_FILES, nargs="+", type=pathlib.Path, required=True
+    )
 
     # subparsers for commands
     parser2 = argparse.ArgumentParser()
     subparsers = parser2.add_subparsers(title="Commands", dest="command")
     subparsers.required = True
 
-    summary_parser = subparsers.add_parser(
-        "summary", help=HELP_CMD_SUMMARY, parents=[parser]
-    )
-    summary_parser.add_argument(
-        "-v", "--verbose", help=HELP_CMD_SUMMARY_VERB, action="store_true"
-    )
+    for command in COMMANDS:
+        cmd_parser = subparsers.add_parser(
+            command.get_name(), help=command.get_help(), parents=[parser]
+        )
+        for arg in command.get_arguments():
+            cmd_parser.add_argument(*arg.flags, **arg.kwargs)
 
     # parse args
     args = parser2.parse_args()
@@ -172,10 +165,19 @@ if __name__ == "__main__":
         project=args.project, bug=args.bug, tool=args.tool, files=args.files
     )
 
-    command = args.command.lower()
-    if command not in COMMANDS:
-        parser.error("Invalid command provided!")
-        quit(1)
+    # get the selected command from args
+    command_str = args.command.lower()
 
-    if command == "summary":
-        print_summary(_reports, verbose=args.verbose)
+    # get the corresponding class
+    command_cls = COMMANDS_BY_NAME[command_str]
+
+    # and then the object, using the reports
+    command = command_cls(_reports)
+
+    # kwargs are automatically parsed from command arguments dest
+    # that is their name in args_dict
+    args_dict = vars(args)
+    kwargs = {dest: args_dict[dest] for dest in command.get_arguments_dest()}
+
+    # execute command
+    command.execute(**kwargs)
