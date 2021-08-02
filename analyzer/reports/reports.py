@@ -91,10 +91,15 @@ class Report(ABC):
         self._killed_mutants_count: Optional[int] = None
         self._live_mutants_count: Optional[int] = None
 
+    def hash_string(self) -> str:
+        """Chosen hash algorithm hex digest
+        converted to string"""
+        raise NotImplementedError
+
     def summary(self, print_mutants: bool = False) -> str:
         mutscore = self.killed_mutants_count / self.total_mutants_count
         buffer = [
-            f"{self.__class__.__name__} Summary [Hash: {hash(self)}]",
+            f"{self.__class__.__name__} Summary [Hash: {self.hash_string()}]",
             f"Report created at:    {self._created_at}",
             f"Mutated class:        {self.class_under_mutation}",
             f"Total mutants count:  {self.total_mutants_count}",
@@ -185,11 +190,13 @@ class SingleFileReport(Report):
 
         self.sanity_check()
 
-    def __hash__(self):
+    def hash_string(self):
         s = str(self.filepath.resolve()).encode("utf-8")
         h = hashlib.md5(s)
-        d = h.hexdigest()
-        return int(d, base=16)
+        return h.hexdigest()
+
+    def __hash__(self):
+        return int(self.hash_string(), base=16)
 
     def extract(self, **kwargs):
         raise NotImplementedError
@@ -212,11 +219,13 @@ class MultipleFilesReport(Report):
 
         self.sanity_check()
 
-    def __hash__(self):
+    def hash_string(self):
         s = b"_".join(str(fp.resolve()).encode("utf-8") for fp in self.filepaths)
         h = hashlib.md5(s)
-        d = h.hexdigest()
-        return int(d, base=16)
+        return h.hexdigest()
+
+    def __hash__(self):
+        return int(self.hash_string(), base=16)
 
     def extract_multiple(self, **kwargs):
         raise NotImplementedError
