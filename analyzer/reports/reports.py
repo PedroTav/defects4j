@@ -245,6 +245,7 @@ class JudyReport(SingleFileReport):
         else:
             thedict = thedict[0]
 
+        JudyMutant.reset_counter()
         self._killed_mutants_count = thedict["mutantsKilledCount"]
         self.live_mutants = [
             JudyMutant.from_dict(mdict) for mdict in thedict["notKilledMutant"]
@@ -283,8 +284,8 @@ class JumbleReport(SingleFileReport):
         killed_text, live_mutants_count = fail_pattern.subn("", text)
         killed_mutants_count = len(re.sub(r"\s+", "", killed_text))
 
+        JumbleMutant.reset_counter()
         self._killed_mutants_count = killed_mutants_count
-
         self.live_mutants = [
             JumbleMutant.from_tuple(atuple) for atuple in fail_pattern.findall(text)
         ]
@@ -347,6 +348,7 @@ class MajorReport(MultipleFilesReport):
         killed_count = len(killed_mutants)
         assert len(df) == live_count + killed_count
 
+        MajorMutant.reset_counter()
         self.live_mutants = []
         self.killed_mutants = []
         classes = []

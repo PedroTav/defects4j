@@ -49,6 +49,10 @@ class MutantWithCounter(Mutant):
         self.hash_counter[key] += 1
         return count
 
+    @classmethod
+    def reset_counter(cls):
+        cls.hash_counter = defaultdict(int)
+
     def hash_tuple_reduced(self) -> tuple:
         raise NotImplementedError
 
