@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     for command in COMMANDS:
         cmd_parser = subparsers.add_parser(
-            command.get_name(), help=command.get_help(), parents=[parser]
+            command.get_name().lower(), help=command.get_help(), parents=[parser]
         )
         for arg in command.get_arguments():
             cmd_parser.add_argument(*arg.flags, **arg.kwargs)
