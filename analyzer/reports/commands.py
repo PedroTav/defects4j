@@ -116,15 +116,14 @@ class SummaryCommand(Command):
     def get_arguments(cls) -> List[Argument]:
         return [
             Argument(
-                "-v",
-                "--verbose",
+                "--full",
                 help="Increase summary verbosity, printing killed and live mutants",
                 action="store_true",
             )
         ]
 
     def execute(self, *args, **kwargs) -> str:
-        print_mutants = kwargs.get("verbose", False)
+        print_mutants = kwargs.get("full", False)
         summaries = [rep.summary(print_mutants=print_mutants) for rep in self.reports]
         thestring = "\n\n".join(summaries)
         print(thestring)
