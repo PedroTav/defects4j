@@ -172,7 +172,9 @@ class MutantsTableCommand(Command):
 
             data = thelist
             hash_data = [mutant.hash_string() for mutant in data]
-            hash_data_reduced = get_unique_substrings(hash_data, min_length=8)
+            hash_data_reduced = get_unique_substrings(
+                hash_data, min_length=8, max_length=16
+            )
 
             series = pd.Series(
                 data=data, index=hash_data_reduced, name=report.hash_string()
@@ -180,7 +182,9 @@ class MutantsTableCommand(Command):
             series_list.append(series)
 
         df = pd.DataFrame(series_list).T
-        df.columns = get_unique_substrings(df.columns.tolist(), min_length=8)
+        df.columns = get_unique_substrings(
+            df.columns.tolist(), min_length=8, max_length=16
+        )
         df.index.name = "Mutant"
 
         return df
