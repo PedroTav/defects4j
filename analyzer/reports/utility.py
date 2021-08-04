@@ -1,7 +1,8 @@
+import base64
 import logging
 import pathlib
 import subprocess
-from typing import List
+from typing import List, Optional
 
 logger = logging.getLogger(__file__)
 
@@ -70,3 +71,46 @@ def get_defects4j_modified_classes(project: str, bug: str) -> List[str]:
         )
     else:
         return open(path).read().splitlines(keepends=False)
+
+
+def get_base64(astring: str) -> str:
+    """Converts a string to its base64 version"""
+    return base64.b64encode(astring.encode("utf-8")).decode("utf-8")
+
+
+def get_unique_substrings(
+    strings: List[str], min_length: Optional[int] = None, on_equal: str = "ignore"
+) -> List[str]:
+    """Get the unique starting substring for a list of strings;
+    this method is useful for hash values, when you want to reduce
+    their size without losing context of which hash they are.
+
+    min_length is the minimum length desired for the substrings to
+    be returned
+
+    on_equal specifies what to do in case of equal strings; the
+    default behaviour is to 'ignore' the problem, otherwise an error
+    can also be raised with 'raise'"""
+
+    on_equal = on_equal.lower()
+    if on_equal not in ("ignore", "raise"):
+        raise ValueError("Invalid on_equal value provided!")
+
+    max_len = min(len(s) for s in strings)
+    if max_len < 1:
+        raise ValueError("Cannot get unique substrings for empty strings")
+    n = 1
+    substrings = [s[:n] for s in strings]
+
+    while len(substrings) != len(set(substrings)) and n <= max_len:
+        n += 1
+        substrings = [s[:n] for s in strings]
+
+    if n > max_len and on_equal == "raise":
+        raise ValueError("Strings are equal!")
+
+    if min_length:
+        m = max(min_length, n)
+        substrings = [s[:m] for s in strings]
+
+    return substrings
