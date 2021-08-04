@@ -128,7 +128,11 @@ class Tool(abc.ABC):
                 shutil.move(src, dst)
                 logger.info(f"Moved {outfile.name} to {output_dir}")
             else:
-                msg = f"{outfile} not found. Did you execute run() before?"
+                msg = (
+                    f"{outfile} not found.\n"
+                    "If you executed run() before, then the tool got an error.\n"
+                    "Try re-executing with --stdout and --stderr"
+                )
                 raise FileNotFoundError(msg)
 
     def replace(self, mapping: dict):
