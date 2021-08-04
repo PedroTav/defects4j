@@ -2,8 +2,8 @@ import argparse
 import logging
 import pathlib
 
-from analyzer.model import get_all_tools, get_tool
 from analyzer.project import Project
+from analyzer.tools import get_all_tools, get_tool
 from analyzer.utility import test_environment
 
 # set logging format
