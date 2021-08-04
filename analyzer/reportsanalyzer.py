@@ -29,7 +29,7 @@ def check_pattern(arg_value: str, pattern: re.Pattern):
 
 
 # make partial function with pattern already set
-check_bug_pattern = partial(check_pattern, pattern=re.compile(r"\d+"))
+check_bug_pattern = partial(check_pattern, pattern=re.compile(r"^\d+$"))
 
 
 def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Report]:
@@ -100,7 +100,6 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
 
 
 # constants
-TOOLS = ["judy", "jumble", "major", "pit"]
 TOOLS_CLASSES = {
     "judy": JudyReport,
     "jumble": JumbleReport,
@@ -138,12 +137,12 @@ if __name__ == "__main__":
     )
 
     # specify the single tool to use
-    parser.add_argument("-t", "--tool", help=HELP_TOOL, choices=TOOLS, required=True)
+    parser.add_argument(
+        "-t", "--tool", help=HELP_TOOL, choices=TOOLS_CLASSES.keys(), required=True
+    )
 
     # specify the list of files to parse into reports
-    parser.add_argument(
-        "-f", "--files", help=HELP_FILES, nargs="+", type=pathlib.Path, required=True
-    )
+    parser.add_argument("files", help=HELP_FILES, nargs="+", type=pathlib.Path)
 
     # subparsers for commands
     parser2 = argparse.ArgumentParser()
