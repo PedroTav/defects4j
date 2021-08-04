@@ -12,6 +12,9 @@ class Mutant(ABC):
         self.line = line
 
     def hash_tuple(self) -> tuple:
+        return tuple(self.hash_dict().values())
+
+    def hash_dict(self) -> dict:
         raise NotImplementedError
 
     def __hash__(self):
@@ -24,7 +27,7 @@ class Mutant(ABC):
         return type(self) is type(other) and hash(self) == hash(other)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}{self.hash_tuple()}"
+        return f"{self.__class__.__name__}{self.hash_dict()}"
 
 
 class MutantWithCounter(Mutant):
@@ -53,19 +56,24 @@ class MutantWithCounter(Mutant):
     def reset_counter(cls):
         cls.hash_counter = defaultdict(int)
 
-    def hash_tuple_reduced(self) -> tuple:
+    def hash_dict_reduced(self) -> dict:
         raise NotImplementedError
 
-    def hash_tuple(self) -> tuple:
-        return self.hash_tuple_reduced() + (self.hash_count,)
+    def hash_tuple_reduced(self) -> tuple:
+        return tuple(self.hash_dict_reduced().values())
+
+    def hash_dict(self) -> dict:
+        newdict = self.hash_dict_reduced()
+        newdict.update(counter=self.hash_count)
+        return newdict
 
 
 class JudyMutant(MutantWithCounter):
     operator: str
     points: int
 
-    def hash_tuple_reduced(self) -> tuple:
-        return self.line, self.operator
+    def hash_dict_reduced(self) -> dict:
+        return dict(line=self.line, operator=self.operator)
 
     @classmethod
     def from_dict(cls, thedict: dict) -> "JudyMutant":
@@ -85,8 +93,8 @@ class JumbleMutant(MutantWithCounter):
     description: str
     class_under_mutation: str
 
-    def hash_tuple_reduced(self) -> tuple:
-        return self.line, self.description
+    def hash_dict_reduced(self) -> dict:
+        return dict(line=self.line, description=self.description)
 
     @classmethod
     def from_tuple(cls, thetuple: tuple) -> "JumbleMutant":
@@ -116,6 +124,17 @@ class MajorMutant(MutantWithCounter):
             self.mutated,
             self.signature,
             self.description,
+        )
+
+    def hash_dict_reduced(self) -> dict:
+        return dict(
+            line=self.line,
+            status=self.status,
+            operator=self.operator,
+            original=self.original,
+            mutated=self.mutated,
+            signature=self.signature,
+            description=self.description,
         )
 
     @classmethod
@@ -151,15 +170,15 @@ class PitMutant(Mutant):
     index: int
     block: int
 
-    def hash_tuple(self) -> tuple:
-        return (
-            self.line,
-            self.mutated_class,
-            self.mutated_method,
-            self.method_description,
-            self.mutator,
-            self.description,
-            self.block,
+    def hash_dict(self) -> dict:
+        return dict(
+            line=self.line,
+            mutated_class=self.mutated_class,
+            mutated_method=self.mutated_method,
+            method_description=self.method_description,
+            mutator=self.mutator,
+            description=self.description,
+            block=self.block,
         )
 
     @classmethod
