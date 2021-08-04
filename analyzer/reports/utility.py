@@ -79,7 +79,10 @@ def get_base64(astring: str) -> str:
 
 
 def get_unique_substrings(
-    strings: List[str], min_length: Optional[int] = None, on_equal: str = "ignore"
+    strings: List[str],
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
+    on_equal: str = "ignore",
 ) -> List[str]:
     """Get the unique starting substring for a list of strings;
     this method is useful for hash values, when you want to reduce
@@ -99,18 +102,30 @@ def get_unique_substrings(
     max_len = min(len(s) for s in strings)
     if max_len < 1:
         raise ValueError("Cannot get unique substrings for empty strings")
-    n = 1
-    substrings = [s[:n] for s in strings]
+    characters_needed = 1
+    substrings = [s[:characters_needed] for s in strings]
 
-    while len(substrings) != len(set(substrings)) and n <= max_len:
-        n += 1
-        substrings = [s[:n] for s in strings]
+    while len(substrings) != len(set(substrings)) and characters_needed <= max_len:
+        characters_needed += 1
+        substrings = [s[:characters_needed] for s in strings]
 
-    if n > max_len and on_equal == "raise":
+    if characters_needed > max_len and on_equal == "raise":
         raise ValueError("Strings are equal!")
 
-    if min_length:
-        m = max(min_length, n)
-        substrings = [s[:m] for s in strings]
+    if not min_length:
+        min_length = 0
+    if not max_length:
+        max_length = max_len
 
+    if max_length < min_length:
+        min_length, max_length = max_length, min_length
+
+    if characters_needed < min_length:
+        limit = min_length
+    elif characters_needed > max_length:
+        limit = max_length
+    else:  # min_length <= characters_needed <= max_length
+        limit = characters_needed
+
+    substrings = [s[:limit] for s in strings]
     return substrings
