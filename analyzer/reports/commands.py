@@ -45,7 +45,10 @@ class Argument:
         self.flags = flags
         self.kwargs = kwargs
 
-    def get_dest(self):
+    def __repr__(self):
+        return f"{self.__class__.__name__}(flags={self.flags}, kwargs={self.kwargs})"
+
+    def get_dest(self) -> str:
         if self.kwargs.get("dest"):
             return self.kwargs["dest"]
         elif any(flag.startswith("--") for flag in self.flags):
@@ -101,9 +104,6 @@ class Command(ABC):
 
 
 class SummaryCommand(Command):
-    def __repr__(self):
-        return "Summary" + super(SummaryCommand, self).__repr__()
-
     @classmethod
     def get_name(cls) -> str:
         return "summary"
@@ -131,9 +131,6 @@ class SummaryCommand(Command):
 
 
 class MutantsTableCommand(Command):
-    def __repr__(self):
-        return "MutantsTable" + super(MutantsTableCommand, self).__repr__()
-
     @classmethod
     def get_name(cls) -> str:
         return "table"

@@ -24,7 +24,7 @@ class Mutant(ABC):
         return type(self) is type(other) and hash(self) == hash(other)
 
     def __repr__(self):
-        return f"Mutant{self.hash_tuple()}"
+        return f"{self.__class__.__name__}{self.hash_tuple()}"
 
 
 class MutantWithCounter(Mutant):
@@ -64,9 +64,6 @@ class JudyMutant(MutantWithCounter):
     operator: str
     points: int
 
-    def __repr__(self):
-        return "Judy" + super(JudyMutant, self).__repr__()
-
     def hash_tuple_reduced(self) -> tuple:
         return self.line, self.operator
 
@@ -87,9 +84,6 @@ class JudyMutant(MutantWithCounter):
 class JumbleMutant(MutantWithCounter):
     description: str
     class_under_mutation: str
-
-    def __repr__(self):
-        return "Jumble" + super(JumbleMutant, self).__repr__()
 
     def hash_tuple_reduced(self) -> tuple:
         return self.line, self.description
@@ -112,9 +106,6 @@ class MajorMutant(MutantWithCounter):
     mutated: str
     signature: str
     description: str
-
-    def __repr__(self):
-        return "Major" + super(MajorMutant, self).__repr__()
 
     def hash_tuple_reduced(self) -> tuple:
         return (
@@ -159,9 +150,6 @@ class PitMutant(Mutant):
     description: str
     index: int
     block: int
-
-    def __repr__(self):
-        return "Pit" + super(PitMutant, self).__repr__()
 
     def hash_tuple(self) -> tuple:
         return (
