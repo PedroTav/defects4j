@@ -255,7 +255,7 @@ class EffectivenessCommand(Command):
         base_index = min(base_index, n - 1)
 
         # take the base column from the parsed dataframe
-        base_column: pd.Series = base_table[base_table.columns[base_index]]
+        base_column: pd.Series = base_table.iloc[:, base_index]
 
         # precondition is that the number of unique mutants must be equal for every row
         # and that is true because nans will be added accordingly;
