@@ -17,17 +17,24 @@ class Mutant(ABC):
     def hash_dict(self) -> dict:
         raise NotImplementedError
 
-    def __hash__(self):
+    def hash_string(self) -> str:
+        """SHA256 algorithm hex digest
+        converted to string"""
         s = b"_".join(str(e).encode("utf-8") for e in self.hash_tuple())
         h = hashlib.sha256(s)
-        digest = int(h.hexdigest(), base=16)
-        return digest
+        return h.hexdigest()
+
+    def __hash__(self):
+        return int(self.hash_string(), base=16)
 
     def __eq__(self, other):
         return type(self) is type(other) and hash(self) == hash(other)
 
     def __repr__(self):
         return f"{self.__class__.__name__}{self.hash_dict()}"
+
+    def __str__(self):
+        return f"{self.hash_dict()}"
 
 
 class MutantWithCounter(Mutant):
