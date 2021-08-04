@@ -3,6 +3,7 @@ from typing import Any, List, Optional
 
 import pandas as pd
 from reports.reports import Report
+from reports.utility import get_unique_substrings
 
 
 class CommandError(Exception):
@@ -170,12 +171,16 @@ class MutantsTableCommand(Command):
                 raise NullListFoundInReportError(ERR_NULL_LIST)
 
             data = thelist
-            hash_data = [hash(mutant) for mutant in data]
+            hash_data = [mutant.hash_string() for mutant in data]
+            hash_data_reduced = get_unique_substrings(hash_data, min_length=8)
 
-            series = pd.Series(data=data, index=hash_data, name=report.hash_string())
+            series = pd.Series(
+                data=data, index=hash_data_reduced, name=report.hash_string()
+            )
             series_list.append(series)
 
         df = pd.DataFrame(series_list).T
+        df.columns = get_unique_substrings(df.columns.tolist(), min_length=8)
         df.index.name = "Mutant"
 
         return df
