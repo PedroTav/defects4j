@@ -189,6 +189,8 @@ class SingleFileReport(Report):
         super(SingleFileReport, self).__init__()
 
         self.filepath = pathlib.Path(filepath)
+        content = open(self.filepath, "rb").read()
+        self._hash_string = hashlib.md5(content).hexdigest()
         try:
             self.extract()
         except Exception:
@@ -197,9 +199,7 @@ class SingleFileReport(Report):
         self.sanity_check()
 
     def hash_string(self):
-        content = open(self.filepath, "rb").read()
-        h = hashlib.md5(content)
-        return h.hexdigest()
+        return self._hash_string
 
     def extract(self, **kwargs):
         raise NotImplementedError
@@ -215,6 +215,8 @@ class MultipleFilesReport(Report):
         super(MultipleFilesReport, self).__init__()
 
         self.filepaths = [pathlib.Path(fp) for fp in filepaths]
+        content = b"\n".join(open(fp, "rb").read() for fp in self.filepaths)
+        self._hash_string = hashlib.md5(content).hexdigest()
         try:
             self.extract_multiple()
         except Exception:
@@ -223,9 +225,7 @@ class MultipleFilesReport(Report):
         self.sanity_check()
 
     def hash_string(self):
-        content = b"\n".join(open(fp, "rb").read() for fp in self.filepaths)
-        h = hashlib.md5(content)
-        return h.hexdigest()
+        return self._hash_string
 
     def extract_multiple(self, **kwargs):
         raise NotImplementedError
