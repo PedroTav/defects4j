@@ -253,8 +253,10 @@ class Project:
                 # in Java filename and class declaration must match
                 classname = testfile.stem
                 # abstract classes are forbidden
-                tofind = rf"^(public|public\s+final|final\s+public) \
-                \s+class\s+{classname}\s+extends\s+\w*Test\w*"
+                tofind = (
+                    r"^(public|public\s+final|final\s+public)"
+                    rf"\s+class\s+{classname}\s+extends\s+\w*Test\w*"
+                )
                 match = re.search(tofind, content, re.MULTILINE)
                 if match:
                     _tests.append(testfile)
