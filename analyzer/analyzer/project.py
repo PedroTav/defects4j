@@ -231,7 +231,7 @@ class Project:
                 logger.debug(f"Match found: {match.groups()}")
                 yield match.group(3)
 
-    def get_tests(self) -> Sequence[str]:
+    def get_tests(self, filter_out_nontest: bool = True) -> Sequence[str]:
         """Return a list of tests in current testsuite with Java format,
         i.e. package.to.TestClass"""
 
@@ -244,6 +244,23 @@ class Project:
         # get tests as glob of all java files here (rglob recursive)
         tests = list(pathlib.Path().rglob("*.java"))
         logger.debug(f"Found {len(tests)} tests inside {self.test_dir}")
+
+        if filter_out_nontest:
+            _tests = []
+            logger.debug("Filtering out non-tests")
+            for testfile in tests:
+                content = open(testfile).read()
+                # in Java filename and class declaration must match
+                classname = testfile.stem
+                # abstract classes are forbidden
+                tofind = rf"^(public|public\s+final|final\s+public) \
+                \s+class\s+{classname}\s+extends\s+\w*Test\w*"
+                match = re.search(tofind, content, re.MULTILINE)
+                if match:
+                    _tests.append(testfile)
+                else:
+                    logger.debug(f"{classname} is not an actual testclass")
+            tests = _tests
 
         # convert from package/to/Test.java to package.to.Test
         tests = [str(test).replace("/", ".").replace(".java", "") for test in tests]
