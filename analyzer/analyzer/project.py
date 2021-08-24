@@ -248,17 +248,26 @@ class Project:
         if filter_out_nontest:
             _tests = []
             logger.debug("Filtering out non-tests")
+
+            # abstract classes are forbidden
+
+            junit4_match = r"\s*@Test\s+(public|private)?\s*void\s+\w+\(.*\)"
+            junit4_pattern = re.compile(junit4_match, re.M)
+
             for testfile in tests:
                 content = open(testfile).read()
                 # in Java filename and class declaration must match
                 classname = testfile.stem
-                # abstract classes are forbidden
-                tofind = (
-                    r"^(public|public\s+final|final\s+public)"
-                    rf"\s+class\s+{classname}\s+extends\s+\w*Test\w*"
+
+                junit3_match = (
+                    r"^(public|public\s+final|final\s+public)\s+"
+                    rf"class\s+{classname}\s+extends\s+\w*Test\w*"
                 )
-                match = re.search(tofind, content, re.MULTILINE)
-                if match:
+
+                match3 = re.search(junit3_match, content)
+                match4 = junit4_pattern.search(content)
+
+                if any(match for match in (match3, match4)):
                     _tests.append(testfile)
                 else:
                     logger.debug(f"{classname} is not an actual testclass")
