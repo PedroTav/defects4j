@@ -251,7 +251,7 @@ class Project:
 
             # abstract classes are forbidden
 
-            junit4_match = r"\s*@Test\s+(public|private)?\s*void\s+\w+\(.*\)"
+            junit4_match = r"\s*@Test\(?.*\)?\s+(public|private)?\s*void\s+\w+\(.*\)"
             junit4_pattern = re.compile(junit4_match, re.M)
 
             for testfile in tests:
