@@ -322,6 +322,8 @@ class MajorReport(MultipleFilesReport):
         kill_csv_fp: Union[str, os.PathLike],
     ):
         super(MajorReport, self).__init__(mutation_log_fp, kill_csv_fp)
+        self.mutation_log_fp = mutation_log_fp
+        self.kill_csv_fp = kill_csv_fp
 
     def __repr__(self):
         return "Major" + super(MajorReport, self).__repr__()
@@ -332,15 +334,7 @@ class MajorReport(MultipleFilesReport):
                 "Two files must be provided! kill.csv and mutants.log"
             )
 
-        first_fp, second_fp = self.filepaths
-        first_fp_first_line = open(first_fp).read().splitlines()[0]
-
-        # if we find the colon in first file, this is mutants.log file
-        if ":" in first_fp_first_line:
-            logfile, csvfile = first_fp, second_fp
-        # otherwise mutants.log is the second file
-        else:
-            logfile, csvfile = second_fp, first_fp
+        logfile, csvfile = self.mutation_log_fp, self.kill_csv_fp
 
         columns = ["MutantNo", "Status"]
         kill_df = pd.read_csv(csvfile, header=0, names=columns).set_index(columns[0])
