@@ -80,7 +80,16 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
             if len(files) < 2:
                 raise OSError(ERR_EXP_MULT_FILES.format(n=len(files)))
 
-            report = tool_cls(*files)
+            if issubclass(tool_cls, MajorReport):
+                if len(files) != 2:
+                    raise OSError(ERR_EXP_NM_FILES.format(n=2, m=len(files)))
+                i = [i for i, f in enumerate(files) if f.suffix.lower() == ".csv"].pop()
+                j = 2 - i - 1
+                csv = files[i]
+                log = files[j]
+                report = tool_cls(log, csv)
+            else:
+                report = tool_cls(*files)
         else:
             if issubclass(tool_cls, JudyReport):
                 report = tool_cls(path, class_under_mutation=class_under_mutation)
@@ -125,6 +134,7 @@ ERR_CLASS = "Report class under mutation is {rep_cls}, but it should be {cls}!"
 ERR_EXP_DIR = "Was expecting a directory, but found a file!"
 ERR_EXP_FILE = "Was expecting a file, but found a directory!"
 ERR_EXP_MULT_FILES = "Was expecting 2 or more files, but found {n}!"
+ERR_EXP_NM_FILES = "Was expecting {n} files, but found {m}!"
 
 
 if __name__ == "__main__":

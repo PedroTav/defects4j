@@ -321,9 +321,9 @@ class MajorReport(MultipleFilesReport):
         mutation_log_fp: Union[str, os.PathLike],
         kill_csv_fp: Union[str, os.PathLike],
     ):
-        super(MajorReport, self).__init__(mutation_log_fp, kill_csv_fp)
         self.mutation_log_fp = mutation_log_fp
         self.kill_csv_fp = kill_csv_fp
+        super(MajorReport, self).__init__(mutation_log_fp, kill_csv_fp)
 
     def __repr__(self):
         return "Major" + super(MajorReport, self).__repr__()
