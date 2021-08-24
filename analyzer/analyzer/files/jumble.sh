@@ -38,7 +38,9 @@ MUTATIONS_ALL="-w -i -k -r -X -j -S"
 MUTATIONS_CSV="-w -i -k -r -X -j -t"
 MUTATIONS="$<REPLACE_MUTATIONS>"
 
-CMD="java -jar $JUMBLE $MUTATIONS -c $CLASSPATH $CLASS $TESTS_ONELINE"
+# set verbosity
+VERBOSE=""
+CMD="java -jar $JUMBLE $VERBOSE $MUTATIONS -c $CLASSPATH $CLASS $TESTS_ONELINE"
 
 OUT="$HERE/jumble_output.txt"
 SEP="----------------------------------------------------------------------------------------------------------"

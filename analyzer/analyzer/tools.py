@@ -135,12 +135,14 @@ class Tool(abc.ABC):
                 )
                 raise FileNotFoundError(msg)
 
-    def replace(self, mapping: dict):
+    def replace(self, mapping: dict, file=None):
         """Overwrite tool flags with actual values"""
-        file = self.project_dir / self.bash_script
+        if not file:
+            file = self.bash_script
+        filepath = self.project_dir / file
 
         # read file
-        with open(file) as f:
+        with open(filepath) as f:
             content = f.read()
 
         # change its content (flags)
@@ -149,7 +151,7 @@ class Tool(abc.ABC):
             fixed = fixed.replace(adict["original"], adict["replacement"])
 
         # write to file
-        with open(file, "w") as f:
+        with open(filepath, "w") as f:
             f.write(fixed)
 
 
@@ -203,7 +205,23 @@ class Jumble(Tool):
     name = "jumble"
 
     bash_script = "jumble.sh"
+    verbose_bash_script = "jumble_verbose.sh"
     output = ["jumble_output.txt"]
+
+    def _create_verbose_script(self):
+        src = self.project_dir / self.bash_script
+        dst = src.with_name(self.verbose_bash_script)
+        shutil.copy(os.fspath(src), os.fspath(dst))
+        self.replace(
+            {
+                "verbose": {
+                    "original": 'VERBOSE=""',
+                    "replacement": 'VERBOSE="--verbose"',
+                }
+            },
+            file=self.verbose_bash_script,
+        )
+        logger.debug("Verbose Jumble script created")
 
     def setup(self, **kwargs):
         super(Jumble, self).setup()
@@ -214,6 +232,9 @@ class Jumble(Tool):
             "mutations": {"original": "<REPLACE_MUTATIONS>", "replacement": mutations},
         }
         self.replace(mapping=mapping)
+
+        # create also a verbose script of Jumble that can display errors
+        self._create_verbose_script()
 
     def _get_mutation_score(self) -> dict:
         live_mutant_pattern = re.compile(r"M FAIL:\s*([a-zA-Z.]+):(\d+):\s*(.+)")
@@ -234,6 +255,8 @@ class Jumble(Tool):
             msg = (
                 f"Cannot find start pattern. "
                 f"Jumble message: {error_pattern.search(text).group(1)}"
+                "\nTry running the verbose script to get "
+                f"more detailed information: {self.verbose_bash_script}"
             )
             raise RuntimeError(msg) from None
 
