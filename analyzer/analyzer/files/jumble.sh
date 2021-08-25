@@ -6,13 +6,17 @@ HERE=$(dirname "$0")
 BASE=$(cd $(dirname $(which defects4j))/../.. && pwd)
 
 MUTATION_TOOLS=$(cd $BASE/mutation_tools && pwd)
+LIB_HOME="$MUTATION_TOOLS/lib"
+
+JUNIT="$LIB_HOME/junit-4.12.jar"
+JUNITX="$LIB_HOME/junit-addons-1.4.jar"
 JUMBLE=$MUTATION_TOOLS/jumble/jumble_binary_1.3.0.jar
 
 TARGET=$HERE/target
 CLS=$TARGET/classes
 TST=$(cd $(find $TARGET -iname "test*" -type d) && pwd)
 
-CLASSPATH=$CLS:$TST
+CLASSPATH=$JUNIT:$JUNITX:$CLS:$TST
 
 # take classes from target folder
 CLASSES=$(cd $CLS && find . -name *.class | sort | sed "s/\.\///g" | tr / . | sed "s/\.class//g")
