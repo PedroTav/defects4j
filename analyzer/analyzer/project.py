@@ -264,7 +264,7 @@ class Project:
                     rf"class\s+{classname}\s+extends\s+\w*Test\w*"
                 )
 
-                match3 = re.search(junit3_match, content)
+                match3 = re.search(junit3_match, content, re.M)
                 match4 = junit4_pattern.search(content)
 
                 if any(match for match in (match3, match4)):
