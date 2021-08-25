@@ -163,6 +163,19 @@ class Judy(Tool):
     bash_script = "judy.sh"
     output = ["result.json"]
 
+    def setup(self, **kwargs):
+        super(Judy, self).setup()
+        theclass = kwargs.get("class")
+        if not theclass:
+            return
+        theclass += ".class"
+        toreplace = 'CLASS="$CLS/<PATH_TO_CLASS>"'
+        replacement = f'CLASS="$CLS/{theclass}"'
+        mapping = {
+            "class": {"original": toreplace, "replacement": replacement},
+        }
+        self.replace(mapping=mapping)
+
     def _get_mutation_score(self) -> dict:
         text = self._get_output_text()
         result_dict = json.loads(text)

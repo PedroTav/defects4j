@@ -497,16 +497,20 @@ class Project:
 
             # must specify tests and class for replacement of dummy text
             # inside bash scripts
-            if isinstance(tool, (tools.Jumble, tools.Pit)):
+            if isinstance(tool, (tools.Jumble, tools.Pit, tools.Judy)):
                 # class under mutation name is project relevant class
                 class_under_mutation = self.relevant_class
+                tests = ""
 
                 # if I have a Jumble tool, I must specify the list of all tests
                 if isinstance(tool, tools.Jumble):
                     tests = " ".join(self.get_tests())
                 # if I have a Pit tool, I must specify the regex of all tests
-                else:
+                elif isinstance(tool, tools.Pit):
                     tests = "*Test*"
+                # if I have a Judy tool, I can specify the list class under mutation
+                elif isinstance(tool, tools.Judy):
+                    class_under_mutation = class_under_mutation.replace(".", "/")
 
                 kwargs.update(
                     {

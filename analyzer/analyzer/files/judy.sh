@@ -15,33 +15,25 @@ echo
 TARGET=$HERE/target
 CLS=$TARGET/classes
 
+# the only class to mutate, if provided
+# else every class in $CLS will be mutated
+CLASS="$CLS/<PATH_TO_CLASS>"
+
 # take every folder "test*" like (ignore case)
 TST=$(cd $(find $TARGET -iname "test*" -type d) && pwd || exit)
 
 if [ "$TST" == "$HOME" ]; then
-  echo "TEST DIR not found!" && exit
+  echo "TEST DIR not found!" && exit 1
 fi
 
-RGX=""
-TGX=""
-
-CMD="$JUDY -p $CLS -t $TST"
-
-# add regexp if they are not null
-if [ ! -z $RGX ]; then
-  CMD="$CMD -r $RGX"
+# if no change were made, use all the classes
+if [ "$CLASS" == "$CLS/<PATH_TO_CLASS>" ]; then
+  CLASS=$CLS
 fi
 
-if [ ! -z $TGX ]; then
-  CMD="$CMD --test-file-regex $TGX"
-fi
-
-# result path of result.json file
-CMD="$CMD --result-path $HERE/result.json"
+CMD="$JUDY -p $CLASS -t $TST --result-path $HERE/result.json"
 
 echo "Command to run:"
-echo $CMD
-echo
+echo "$CMD"
+echo "----------------------------------------"
 $CMD
-
-# result is in "result.json"
