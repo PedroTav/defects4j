@@ -95,6 +95,17 @@ class JudyMutant(MutantWithCounter):
 
         return mutant
 
+    @classmethod
+    def from_tuple(cls, thetuple: tuple) -> "JudyMutant":
+        points, _, operator, line = thetuple
+
+        mutant = cls(int(line))
+        mutant.operator = operator
+        mutant.points = int(points)
+        mutant.get_hash_count()
+
+        return mutant
+
 
 class JumbleMutant(MutantWithCounter):
     description: str

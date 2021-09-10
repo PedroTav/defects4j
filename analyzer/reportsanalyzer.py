@@ -28,6 +28,12 @@ def check_pattern(arg_value: str, pattern: re.Pattern):
         return arg_value
 
 
+def get_file_with_ext(files: List[pathlib.Path], ext: str) -> pathlib.Path:
+    if not ext.startswith("."):
+        ext = "." + ext
+    return [f for f in files if f.suffix.lower() == ext].pop()
+
+
 # make partial function with pattern already set
 check_bug_pattern = partial(check_pattern, pattern=re.compile(r"^\d+$"))
 
@@ -80,21 +86,21 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
             if len(files) < 2:
                 raise OSError(ERR_EXP_MULT_FILES.format(n=len(files)))
 
-            if issubclass(tool_cls, MajorReport):
+            if issubclass(tool_cls, (MajorReport, JudyReport)):
                 if len(files) != 2:
                     raise OSError(ERR_EXP_NM_FILES.format(n=2, m=len(files)))
-                i = [i for i, f in enumerate(files) if f.suffix.lower() == ".csv"].pop()
-                j = 2 - i - 1
-                csv = files[i]
-                log = files[j]
+            if issubclass(tool_cls, MajorReport):
+                csv = get_file_with_ext(files, "csv")
+                log = get_file_with_ext(files, "log")
                 report = tool_cls(log, csv)
+            elif issubclass(tool_cls, JudyReport):
+                json = get_file_with_ext(files, "json")
+                log = get_file_with_ext(files, "log")
+                report = tool_cls(json, log, class_under_mutation)
             else:
                 report = tool_cls(*files)
         else:
-            if issubclass(tool_cls, JudyReport):
-                report = tool_cls(path, class_under_mutation=class_under_mutation)
-            else:
-                report = tool_cls(path)
+            report = tool_cls(path)
 
         if report.class_under_mutation != class_under_mutation:
             raise ReportError(

@@ -218,7 +218,7 @@ class MultipleFilesReport(Report):
         content = b"\n".join(open(fp, "rb").read() for fp in self.filepaths)
         self._hash_string = hashlib.md5(content).hexdigest()
         try:
-            self.extract_multiple()
+            self.extract()
         except Exception:
             raise ReportError(ERR_EXTRACT_MULT.format(fps=self.filepaths))
 
@@ -227,7 +227,7 @@ class MultipleFilesReport(Report):
     def hash_string(self):
         return self._hash_string
 
-    def extract_multiple(self, **kwargs):
+    def extract(self, **kwargs):
         raise NotImplementedError
 
     def summary(self, print_mutants: bool = False) -> str:
@@ -236,16 +236,24 @@ class MultipleFilesReport(Report):
         return f"{summary}\nFilepaths: {fps}"
 
 
-class JudyReport(SingleFileReport):
-    def __init__(self, filepath: Union[str, os.PathLike], class_under_mutation: str):
+class JudyReport(MultipleFilesReport):
+    def __init__(
+        self,
+        json_filepath: Union[str, os.PathLike],
+        log_filepath: Union[str, os.PathLike],
+        class_under_mutation: str,
+    ):
         self.class_under_mutation = class_under_mutation
-        super(JudyReport, self).__init__(filepath)
+        self.json_fp = pathlib.Path(json_filepath)
+        self.log_fp = pathlib.Path(log_filepath)
+        super(JudyReport, self).__init__(json_filepath, log_filepath)
 
     def __repr__(self):
         return "Judy" + super(JudyReport, self).__repr__()
 
-    def extract(self):
-        judy_dict = json.loads(open(self.filepath).read())
+    def _extract_json(self):
+        """Parse live mutants from json report"""
+        judy_dict = json.loads(open(self.json_fp).read())
 
         classes = judy_dict["classes"]
         if not classes:
@@ -273,6 +281,36 @@ class JudyReport(SingleFileReport):
         self.live_mutants = [
             JudyMutant.from_dict(mdict) for mdict in thedict["notKilledMutant"]
         ]
+
+    def _extract_log(self):
+        """Extract killed mutants through log"""
+        lines = open(self.log_fp).readlines()
+        regexp = (
+            r"DEBUG\s+pl\.edu\.pwr\.judy\.research\.fragility\.ResearchDataCollector"
+            r"\s+-?\s*\s+[\w\.]+\s*(\d+)\s*(\d+)\s*(\w+)\s*\[?([^\]]+)\]?\s*([\w\.]+)"
+        )
+        pattern = re.compile(regexp)
+        mutations = set()
+
+        for line in lines:
+            match = pattern.search(line)
+            if not match:
+                continue
+            points = match.group(1)
+            mutant_id = match.group(2)
+            operator = match.group(3)
+            line = match.group(4)
+            # killed_test = match.group(5)
+
+            # adding in a set will result in collision removal
+            entry = (points, mutant_id, operator, line)
+            mutations.add(entry)
+
+        self.killed_mutants = [JudyMutant.from_tuple(t) for t in mutations]
+
+    def extract(self):
+        self._extract_json()
+        self._extract_log()
 
 
 class JumbleReport(SingleFileReport):
@@ -328,7 +366,7 @@ class MajorReport(MultipleFilesReport):
     def __repr__(self):
         return "Major" + super(MajorReport, self).__repr__()
 
-    def extract_multiple(self):
+    def extract(self):
         if len(self.filepaths) != 2:
             raise MajorReportError(
                 "Two files must be provided! kill.csv and mutants.log"
