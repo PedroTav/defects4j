@@ -54,6 +54,15 @@ def bash_script(script, capture_out=True, capture_err=True):
     return subprocess.run(command, stdout=stdout, stderr=stderr)
 
 
+def get_pid_from_name(name: str) -> int:
+    # get last excluding grep with tail and head
+    command = (
+        f"ps aux | grep -i {name} | tail -2 | head -1 | awk '{{print $2}}'".split()
+    )
+    out = subprocess.run(command, capture_output=True)
+    logger.debug(f"{out=}")
+
+
 def defects4j_cmd(cmd: str = "", *args, **kwargs):
     """Utility function to call a Defects4j command"""
     possible_cmds = (
