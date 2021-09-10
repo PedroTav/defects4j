@@ -161,7 +161,7 @@ class Judy(Tool):
     name = "judy"
 
     bash_script = "judy.sh"
-    output = ["result.json"]
+    output = ["result.json", "judy.log"]
 
     def setup(self, **kwargs):
         super(Judy, self).setup()

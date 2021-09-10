@@ -32,8 +32,12 @@ if [ "$CLASS" == "$CLS/<PATH_TO_CLASS>" ]; then
 fi
 
 CMD="$JUDY -p $CLASS -t $TST --result-path $HERE/result.json"
+OUT="$HERE/judy.log"
+SEP="-------------------------------------------------"
 
-echo "Command to run:"
-echo "$CMD"
-echo "----------------------------------------"
-$CMD
+printf "Running command $CMD \n"
+echo "Inside the box there is all Judy output (stdout and stderr)"
+echo "Stdout will be redirect also to $OUT"
+
+echo $SEP
+$CMD 2>&1 | tee $OUT
