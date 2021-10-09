@@ -20,8 +20,8 @@ class NullListFoundInReportError(CommandError):
     working in a command; an empty list is fine"""
 
 
-class NullMutantsFoundInBaseRowError(CommandError):
-    """Error raised when a supposedly base row
+class NullMutantsFoundInBaseReportError(CommandError):
+    """Error raised when a supposedly base report
     for commands like effectiveness has nan elements,
     meaning that there are mutants in other reports
     that do not appears in this base row"""
@@ -35,9 +35,9 @@ ERR_NULL_LIST = (
     "Maybe this report doesn't allow the extraction of this kind of mutants?"
 )
 
-ERR_NULL_BASE_ROW = (
-    "Found one or more null mutants in base row!"
-    "Other reports should be made with the base testsuite and one or more test"
+ERR_NULL_BASE_REPORT = (
+    "Found one or more null mutants in base report!"
+    "Other reports should be obtained with the base testsuite and one or more test added"
 )
 
 
@@ -268,7 +268,7 @@ class EffectivenessCommand(Command):
         # furthermore, to calculate the effectiveness, we mustn't have nans in base row,
         # because if there is a nan, there is a live mutant in report i that is not found in base
         if base_column.hasnans:
-            raise NullMutantsFoundInBaseRowError(ERR_NULL_BASE_ROW)
+            raise NullMutantsFoundInBaseReportError(ERR_NULL_BASE_REPORT)
         else:
             total_count = base_column.count()
 
@@ -276,6 +276,15 @@ class EffectivenessCommand(Command):
         df = pd.DataFrame(base_table.count(), columns=["live_count"])
         df["live_total_count"] = total_count
         df["effectiveness"] = 1 - df["live_count"] / total_count
+
+        # put again reports as columns
+        # df = df.T
+
+        # remove base column/report from table
+        #
+        # if trasponse is done, then the command
+        # should be columns=... instead of index=...
+        # df = df.drop(index=[base_column.name])
 
         output: str = kwargs.get("output")
         if output:
