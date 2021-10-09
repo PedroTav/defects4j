@@ -206,8 +206,6 @@ f2c32c16           NaN         {...}
 
 
 ### `effectiveness`
-DESCRIZIONE EFFECTIVENESS + OPTIONAL ARGS
-
 Compute the *effectiveness* of one or more reports when compared to a base report, thus **requiring two or more input reports**.
 
 Effectiveness is defined as one minus the count of live mutations of a report divided by the total count of live mutations (or, the count of live mutations of base report). Every other report *should* be produced with the testsuite used by the base report, combined with another test suite, so that it won't exist a live mutation in report *i* that doesn't belong to base report.
