@@ -236,7 +236,55 @@ class MultipleFilesReport(Report):
         return f"{summary}\nFilepaths: {fps}"
 
 
-class JudyReport(MultipleFilesReport):
+class SingleJudyReport(SingleFileReport):
+    def __init__(
+        self,
+        json_filepath: Union[str, os.PathLike],
+        class_under_mutation: str,
+    ):
+        self.class_under_mutation = class_under_mutation
+        self.json_fp = pathlib.Path(json_filepath)
+        super(SingleJudyReport, self).__init__(json_filepath)
+
+    def __repr__(self):
+        return "SingleJudy" + super(SingleJudyReport, self).__repr__()
+
+    def _extract_json(self):
+        """Parse live mutants from json report"""
+        judy_dict = json.loads(open(self.json_fp).read())
+
+        classes = judy_dict["classes"]
+        if not classes:
+            raise EmptyJudyReportError(
+                "No mutated class found! There were some errors in execution phase"
+            )
+
+        thedict = [
+            adict for adict in classes if adict["name"] == self.class_under_mutation
+        ]
+
+        if len(thedict) == 0:
+            raise MissingClassFromJudyReportError(
+                f"{self.class_under_mutation} not found!"
+            )
+        elif len(thedict) > 1:
+            raise MultipleClassFromJudyReportError(
+                f"{self.class_under_mutation} found multiple times!"
+            )
+        else:
+            thedict = thedict[0]
+
+        JudyMutant.reset_counter()
+        self._killed_mutants_count = thedict["mutantsKilledCount"]
+        self.live_mutants = [
+            JudyMutant.from_dict(mdict) for mdict in thedict["notKilledMutant"]
+        ]
+
+    def extract(self):
+        self._extract_json()
+
+
+class MultipleJudyReport(MultipleFilesReport):
     def __init__(
         self,
         json_filepath: Union[str, os.PathLike],
@@ -246,10 +294,10 @@ class JudyReport(MultipleFilesReport):
         self.class_under_mutation = class_under_mutation
         self.json_fp = pathlib.Path(json_filepath)
         self.log_fp = pathlib.Path(log_filepath)
-        super(JudyReport, self).__init__(json_filepath, log_filepath)
+        super(MultipleJudyReport, self).__init__(json_filepath, log_filepath)
 
     def __repr__(self):
-        return "Judy" + super(JudyReport, self).__repr__()
+        return "MultipleJudy" + super(MultipleJudyReport, self).__repr__()
 
     def _extract_json(self):
         """Parse live mutants from json report"""

@@ -129,15 +129,18 @@ The options `-p`, `-b` and `-t` are shared by all commands, thus they are requir
 
 - `-b <projectBug>`: Must be the identifier of a Defects4j project's bug; this is the exact bug id used when `defects4j checkout` is called, except that the bug status, i.e. buggy `b` or fixed `f`, is omitted.
 
-- `-t <toolName>`: Must be the name of a mutation tool; this is expected lowercase, and can be one in `judy`, `jumble`, `major` and `pit`.
+- `-t <toolName>`: Must be the name of a mutation tool; this is expected lowercase, and can be one in `judy`, `judylog`, `jumble`, `major` and `pit`.
 
 - `reportPath`: The path to a report; this has to be a single file if the chosen mutation tool is a `SingleFileReport`, otherwise a directory containing two or more files if the mutation tool is a `MultipleFilesReport`.
 
 ### Expected `reportPath`
 As explained before, a report can be made of one or two (or more) files. 
 
-**Judy and Major** reports are classified as **`MultipleFilesReport`**, because *Analyzer* generates two output file for a single execution; 
-**Jumble and Pit**, on the other hand, are classified as **`SingleFileReport`**, because *Analyzer* generates only one output file for each tool for every execution.
+**Major** report is classified as **`MultipleFilesReport`**, because *Analyzer* generates two output file for a single execution.
+
+**Jumble and Pit** are classified as **`SingleFileReport`**, because *Analyzer* generates only one output file for each tool for every execution.
+
+**Judy**, however, is classified both as **`SingleFileReport`** and **`MultipleFilesReport`**; *Analyzer* generates two output file for a single execution, but the count of parsed killed mutations is different from count of generated and killed mutations, so the tester has the possibility of using both version of the same report.
 
 - When dealing with `SingleFileReport` tools, `reportPath` has to be provided as the single **file** generated.
 - When dealing with `MultipleFilesReport`, `reportPath` has to be provided as the **directory** containing the two or more files required to be parsed as a single report.
@@ -145,7 +148,9 @@ As explained before, a report can be made of one or two (or more) files.
 #### What to provide for each tool
 The reported filenames lister below are the original names of the files, as they are collected by *Analyzer*; these names can be different, but the extension must match the one reported.
 
-- Judy directory must contain both one *json* file and one *log* file, that are respectively `result.json` and `judy.log`.
+- JudyLog) Judy directory must contain both one *json* file and one *log* file, that are respectively `result.json` and `judy.log`.
+
+- Judy) Judy file must the *json* file, that is `result.json`.
 
 - Jumble file must be the *txt* file, that is `jumble_output.txt`.
 

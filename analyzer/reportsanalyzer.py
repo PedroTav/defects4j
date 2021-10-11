@@ -6,15 +6,16 @@ from typing import List
 
 from reports.commands import COMMANDS, COMMANDS_BY_NAME
 from reports.reports import (
-    JudyReport,
     JumbleReport,
     MajorReport,
     MultipleClassUnderMutationError,
     MultipleFilesReport,
+    MultipleJudyReport,
     PitReport,
     Report,
     ReportError,
     SingleFileReport,
+    SingleJudyReport,
 )
 from reports.utility import get_defects4j_modified_classes
 
@@ -86,19 +87,21 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
             if len(files) < 2:
                 raise OSError(ERR_EXP_MULT_FILES.format(n=len(files)))
 
-            if issubclass(tool_cls, (MajorReport, JudyReport)):
+            if issubclass(tool_cls, (MajorReport, MultipleJudyReport)):
                 if len(files) != 2:
                     raise OSError(ERR_EXP_NM_FILES.format(n=2, m=len(files)))
             if issubclass(tool_cls, MajorReport):
                 csv = get_file_with_ext(files, "csv")
                 log = get_file_with_ext(files, "log")
                 report = tool_cls(log, csv)
-            elif issubclass(tool_cls, JudyReport):
+            elif issubclass(tool_cls, MultipleJudyReport):
                 json = get_file_with_ext(files, "json")
                 log = get_file_with_ext(files, "log")
                 report = tool_cls(json, log, class_under_mutation)
             else:
                 report = tool_cls(*files)
+        elif issubclass(tool_cls, SingleJudyReport):
+            report = tool_cls(path, class_under_mutation)
         else:
             report = tool_cls(path)
 
@@ -116,7 +119,8 @@ def get_reports(project: str, bug: str, tool: str, files: List[str]) -> List[Rep
 
 # constants
 TOOLS_CLASSES = {
-    "judy": JudyReport,
+    "judy": SingleJudyReport,
+    "judylog": MultipleJudyReport,
     "jumble": JumbleReport,
     "major": MajorReport,
     "pit": PitReport,
