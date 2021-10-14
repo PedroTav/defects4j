@@ -100,7 +100,7 @@ D4J_PROJECT=/tmp/d4j/cli32f
 ```bash
 # get automatically defects4j paths
 D4J_HOME=$(cd $(dirname $(which defects4j))/../.. && pwd)
-D4J_ANALYZER=$(cd $D4J_HOME/analyzer/ && pwd)
+D4J_ANALYZER="$D4J_HOME/analyzer"
 
 # run all four mutation tools on the project with an empty test suite
 python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT
@@ -259,14 +259,13 @@ An example of usage is given below. The execution of *ReportsAnalyzer* should be
 # get automatically paths
 D4J_HOME=$(cd $(dirname $(which defects4j))/../.. && pwd)
 D4J_ANALYZER="$D4J_HOME/analyzer"
-D4J_PROJECT_OUT="$D4J_PROJECT/tools_output"
 
 # get the summary of a Judy report
 python3 $D4J_ANALYZER/reportsanalyzer.py summary \
--p Cli -b 32 -t judy $D4J_PROJECT_OUT/judy/result.json
+-p Cli -b 32 -t judy /path/to/judy/result.json
 
 # get the effectiveness of a Jumble report with respect to its base report
 python3 $D4J_ANALYZER/reportsanalyzer.py effectiveness -p Cli -b 32 -t judy \
-$D4J_PROJECT_OUT/jumble/base_jumble_output.txt \
-$D4J_PROJECT_OUT/jumble/jumble_output.txt
+/path/to/jumble/base_jumble_output.txt \
+/path/to/jumble/jumble_output.txt
 ```
