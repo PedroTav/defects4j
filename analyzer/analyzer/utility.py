@@ -34,11 +34,11 @@ def read_config(filepath: Union[str, os.PathLike], separator="=") -> dict:
     return result
 
 
-def bash_command(command: str, *args):
+def bash_command(command: str, *args, **kwargs):
     """Utility function to run a bash command"""
     cmd = [command] + list(args)
     logger.debug(f"Running {cmd}")
-    return subprocess.run(cmd)
+    return subprocess.run(cmd, **kwargs)
 
 
 def bash_script(script, capture_out=True, capture_err=True):
@@ -52,15 +52,6 @@ def bash_script(script, capture_out=True, capture_err=True):
         f"Running {command} - Capture out? {capture_out} - Capture err? {capture_err}"
     )
     return subprocess.run(command, stdout=stdout, stderr=stderr)
-
-
-def get_pid_from_name(name: str) -> int:
-    # get last excluding grep with tail and head
-    command = (
-        f"ps aux | grep -i {name} | tail -2 | head -1 | awk '{{print $2}}'".split()
-    )
-    out = subprocess.run(command, capture_output=True)
-    logger.debug(f"{out=}")
 
 
 def defects4j_cmd(cmd: str = "", *args, **kwargs):
@@ -119,3 +110,20 @@ def defects4j_cmd_dirpath(project_dir, command: str, *args, **kwargs):
     defects4j_cmd(command, *args, **kwargs)
     if change_dir:
         os.chdir(old_path)
+
+
+def get_defects4j_root_path() -> pathlib.Path:
+    """Get the root of current Defects4J installation"""
+    test_environment()  # assure defects4j is present
+
+    out = bash_command("which", "defects4j", capture_output=True)
+    logger.debug(f"which defects4j: {out}")
+
+    d4j_path = pathlib.Path(out.stdout.decode())
+    logger.debug(f"d4j path: {d4j_path}")
+
+    # defects4j is found in <ROOT>/framework/bin/defects4j
+    root = d4j_path.parent.parent.parent
+    logger.debug(f"root is {root}")
+
+    return root

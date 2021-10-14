@@ -1,15 +1,10 @@
 import abc
-import io
-import json
+import datetime
 import logging
 import os
 import pathlib
-import re
 import shutil
-import xml.etree.ElementTree as ET
 from typing import Union
-
-import pandas as pd
 
 from analyzer import utility
 
@@ -41,20 +36,6 @@ class Tool(abc.ABC):
         self.project_dir = pathlib.Path(project_dir)
         self.class_under_mutation = class_under_mutation
 
-    def _get_output_text(self, filename=None, subdirectory: str = None):
-        """Return the text of a specified file inside the tool output dir.
-        If omitted, defaults to the first output listed."""
-        output = filename or self.output[0]
-        output = self.get_output_dir(subdirectory) / output
-        logger.debug(f"Reading text from {output.resolve()}")
-
-        if not output.is_file():
-            raise FileNotFoundError(output.resolve())
-
-        with open(output) as f:
-            text = f.read()
-        return text
-
     def remove_output(self, **kwargs):
         """Utility function to remove output files"""
         for outfile in self.output:
@@ -76,42 +57,26 @@ class Tool(abc.ABC):
 
     def run(self, **kwargs):
         """Run the tool via its bash script"""
+        if not self.bash_script:
+            raise ValueError("Cannot run bash script if it's null!")
+
         script = self.project_dir / self.bash_script
 
         capture_out = kwargs.get("stdout", False)
         capture_err = kwargs.get("stderr", False)
         utility.bash_script(script, capture_out, capture_err)
 
-    def _get_mutation_score(self) -> dict:
-        """Returns a dict, holding killed count, live count, all count and score"""
-        raise NotImplementedError
-
-    def get_mutation_score(
-        self, json_output: str = None, subdirectory: str = None
-    ) -> float:
-        """Get mutation score for current testsuite and tool"""
-        output_dir = self.get_output_dir(subdirectory)
-        logger.debug(f"Output dir is {output_dir.resolve()}")
-
-        score_dict = self._get_mutation_score()
-        logger.debug(f"Score dict is {score_dict}")
-
-        if json_output:
-            if not json_output.endswith(".json"):
-                json_output += ".json"
-            json_output_path = output_dir / json_output
-            with open(json_output_path, "w") as f:
-                json.dump(score_dict, f)
-            logger.info(f"Written score json to {json_output_path}")
-
-        return score_dict["score"]
-
     def get_output(self, subdirectory: str = None):
         """Get the tool output and place it under
         the specified output directory"""
 
+        now = datetime.datetime.now()
+        nowstr = now.strftime("%Y-%m-%d_%H-%M-%S")
+
         # cast output dir as pathlib object
         output_dir = self.get_output_dir(subdirectory)
+
+        logger.debug(f"Output dir is {output_dir}")
 
         # create output directory if didn't exist
         if not output_dir.exists():
@@ -119,19 +84,30 @@ class Tool(abc.ABC):
             logger.info(f"Created {output_dir}")
 
         for outfile in self.output:
+            # src is outfile in project directory
             outfile = self.project_dir / outfile
-            outfile = outfile.resolve()
+
+            logger.debug(f"Outfile (src) is {outfile}")
+
+            # dst is projectDir / outputDir / outfile
+            outfile_dst = output_dir / outfile.name
+            outfile_dst = outfile_dst.with_stem(f"{outfile.stem}_{nowstr}")
+            outfile_dst = outfile_dst.resolve()
+
+            logger.debug(f"outfile_dst (dst) is {outfile_dst}")
+
             logger.debug(f"Working on {outfile}")
+
             if outfile.exists():
                 src = os.fspath(outfile)
-                dst = os.fspath(output_dir / outfile.name)
+                dst = os.fspath(outfile_dst)
                 shutil.move(src, dst)
-                logger.info(f"Moved {outfile.name} to {output_dir}")
+                logger.info(f"Moved {outfile.name} to {outfile_dst}")
             else:
                 msg = (
                     f"{outfile} not found.\n"
                     "If you executed run() before, then the tool got an error.\n"
-                    "Try re-executing with --stdout and --stderr"
+                    "Try re-executing with --stdout and --stderr to see logs."
                 )
                 raise FileNotFoundError(msg)
 
@@ -139,6 +115,9 @@ class Tool(abc.ABC):
         """Overwrite tool flags with actual values"""
         if not file:
             file = self.bash_script
+        if not file:
+            raise FileNotFoundError("No file was found to be replaced!")
+
         filepath = self.project_dir / file
 
         # read file
@@ -175,41 +154,6 @@ class Judy(Tool):
             "class": {"original": toreplace, "replacement": replacement},
         }
         self.replace(mapping=mapping)
-
-    def _get_mutation_score(self) -> dict:
-        text = self._get_output_text()
-        result_dict = json.loads(text)
-
-        thedict = [
-            adict
-            for adict in result_dict["classes"]
-            if adict["name"] == self.class_under_mutation
-        ]
-
-        assert (
-            len(thedict) > 0
-        ), f"{self.class_under_mutation} not found in Judy output!"
-        assert (
-            len(thedict) == 1
-        ), f"{self.class_under_mutation} appears multiple times in Judy output!"
-
-        # take the only dict
-        thedict = thedict[0]
-
-        # and parse it
-        all_count = thedict["mutantsCount"]
-        killed_count = thedict["mutantsKilledCount"]
-        live_count = all_count - killed_count
-        score_full = killed_count / all_count
-        score = round(score_full, 3)
-
-        return dict(
-            killed=killed_count,
-            live=live_count,
-            all=all_count,
-            score=score,
-            score_full=score_full,
-        )
 
 
 class Jumble(Tool):
@@ -249,49 +193,6 @@ class Jumble(Tool):
         # create also a verbose script of Jumble that can display errors
         self._create_verbose_script()
 
-    def _get_mutation_score(self) -> dict:
-        live_mutant_pattern = re.compile(r"M FAIL:\s*([a-zA-Z.]+):(\d+):\s*(.+)")
-        start_pattern = re.compile(
-            r"Mutation points = \d+, unit test time limit \d+\.\d+s"
-        )
-        end_pattern = re.compile(r"Jumbling took \d+\.\d+s")
-        error_pattern = re.compile(r"Score: \d% \(([\w ]+)")
-
-        text = self._get_output_text()
-
-        # try-except block to return a more understandable error
-        try:
-            # get indices where the mutants are defined
-            i = start_pattern.search(text).end()
-            j = end_pattern.search(text[i:]).start() + i
-        except AttributeError:
-            msg = (
-                f"Cannot find start pattern. "
-                f"Jumble message: {error_pattern.search(text).group(1)}"
-                "\nTry running the verbose script to get "
-                f"more detailed information: {self.verbose_bash_script}"
-            )
-            raise RuntimeError(msg) from None
-
-        # subtract from text all the fails + get count of them
-        killed_text, live_mutants_count = live_mutant_pattern.subn("", text[i:j])
-
-        # get killed count as length of mutations with whitespaces removed
-        killed_mutants_count = len(re.sub(r"\s+", "", killed_text))
-
-        all_count = live_mutants_count + killed_mutants_count
-
-        score_full = killed_mutants_count / all_count
-        score = round(score_full, 3)
-
-        return dict(
-            killed=killed_mutants_count,
-            live=live_mutants_count,
-            all=all_count,
-            score=score,
-            score_full=score_full,
-        )
-
 
 class Major(Tool):
     """Major tool"""
@@ -311,51 +212,6 @@ class Major(Tool):
         target = self.project_dir / ".classes_mutated"
         shutil.rmtree(target, ignore_errors=True)
 
-    def _get_mutation_score(self) -> dict:
-        text = self._get_output_text("kill.csv")
-        stream = io.StringIO(text)
-        columns = ["MutantNo", "Status"]
-        kill_df = pd.read_csv(stream, header=0, names=columns).set_index("MutantNo")
-
-        text = self._get_output_text("mutants.log")
-        stream = io.StringIO(text)
-        columns = [
-            "MutantNo",
-            "Operator",
-            "From",
-            "To",
-            "Signature",
-            "LineNumber",
-            "Description",
-        ]
-        mutants_df = pd.read_csv(
-            stream, delimiter=":", header=None, names=columns
-        ).set_index("MutantNo")
-
-        if kill_df.empty:
-            logger.info("kill.csv is empty! All mutants generated are live")
-            return dict(
-                killed=0,
-                live=len(mutants_df),
-                all=len(mutants_df),
-                score=0,
-                score_full=0,
-            )
-        else:
-            df = mutants_df.join(kill_df)
-            live_count = len(df[df["Status"] == "LIVE"])
-            all_count = len(df)
-            killed_count = all_count - live_count
-            score = killed_count / all_count
-
-            return dict(
-                killed=killed_count,
-                live=live_count,
-                all=all_count,
-                score=round(score, 3),
-                score_full=score,
-            )
-
 
 class Pit(Tool):
     """Pit tool"""
@@ -372,36 +228,6 @@ class Pit(Tool):
             "class": {"original": "<CLASS_REGEXP>", "replacement": kwargs["class"]},
         }
         self.replace(mapping=mapping)
-
-    def _get_mutation_score(self) -> dict:
-        text = self._get_output_text("mutations.xml")
-
-        # get xml tree for xml text
-        tree = ET.fromstring(text)
-
-        # map
-        bool_mapper = dict(true=True, false=False)
-
-        killed_count = 0
-        live_count = 0
-
-        for child in tree:
-            killed = bool_mapper[child.get("detected")]
-            if killed:
-                killed_count += 1
-            else:
-                live_count += 1
-        all_count = killed_count + live_count
-        score_full = killed_count / all_count
-        score = round(score_full, 3)
-
-        return dict(
-            killed=killed_count,
-            live=live_count,
-            all=all_count,
-            score=score,
-            score_full=score_full,
-        )
 
 
 def get_tool(

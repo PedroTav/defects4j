@@ -4,7 +4,7 @@ import os
 import pathlib
 import re
 import shutil
-from typing import Generator, Sequence, Union
+from typing import Sequence, Union
 
 from analyzer import tools, utility
 
@@ -22,7 +22,6 @@ class Project:
     """Interface of a Defects4j Project"""
 
     default_backup_tests = "dev_backup"
-    compatible_projects = ("Cli", "Gson", "Lang")
 
     def __init__(self, filepath: Union[str, os.PathLike]):
         """Create a (Defects4j compatible) Project"""
@@ -31,18 +30,17 @@ class Project:
         config = self.read_defects4j_config()
         self.name = config["pid"]
 
-        if not self.is_compatible_project():
-            msg = f"Incompatible project! Use one of {self.compatible_projects}"
-            logger.error(msg)
-            raise ValueError(msg)
+        match = re.match(r"(\d+)(\w+)", config["vid"])
+        if not match:
+            raise ValueError("Missing bug identifier from config!")
 
-        self.bug, bug_status = re.match(r"(\d+)(\w+)", config["vid"]).groups()
+        self.bug, bug_status = match.groups()
         if bug_status == "b":
             self.bug_status = BugStatus.BUGGY
         elif bug_status == "f":
             self.bug_status = BugStatus.FIXED
         else:
-            raise ValueError(f"Invalid bug status found in config ({bug_status})")
+            raise ValueError(f"Invalid bug status found in config, found: {bug_status}")
 
         properties = self.read_defects4j_build_properties()
         self.relevant_class = properties["d4j.classes.relevant"]
@@ -50,8 +48,14 @@ class Project:
         self.package = ".".join(self.relevant_class.split(".")[:-1])
         package_path = self.package.replace(".", "/")
         self.full_test_dir = self.test_dir / package_path
+
         # agreement that testclasses are in the format package.to.ClassTest
         self.test_class = str(self.relevant_class) + "Test"
+
+        logger.debug(f"relevant_class is {self.relevant_class}")
+        logger.debug(f"test_dir is {self.test_dir}")
+        logger.debug(f"package is {self.package}")
+        logger.debug(f"full_test_dir is {self.full_test_dir}")
 
         # make a backup of tests at the end of init phase
         self.backup_tests()
@@ -60,19 +64,10 @@ class Project:
     def test_classes(self) -> list:
         """Retrieve the relevant test classes (as found in D4J framework dir)
         given a Project name"""
-
-        fname = f"{self.name.lower()}_tests"
-        relevant_file = tools.FILES / fname / "relevant" / "tests.txt"
-        if not relevant_file.is_file():
-            raise FileNotFoundError(
-                f"Missing relevant tests from {fname}: {relevant_file}"
-            )
-
-        tests = open(relevant_file).read().split()
+        root = utility.get_defects4j_root_path()
+        path = root / "framework" / "projects" / self.name / "relevant_tests" / self.bug
+        tests = open(path).read().split()
         return tests
-
-    def is_compatible_project(self):
-        return self.name in self.compatible_projects
 
     def __repr__(self):
         return f"{self.name} {self.bug}{self.bug_status.value} [fp: {self.filepath}]"
@@ -205,31 +200,104 @@ class Project:
         )
         return tools.FILES / tests[self.name]
 
+    def set_testsuite(self, **kwargs):
+        """Method to set the testsuite for an execution.
+
+        If skip_setup is true, then the function will exit immediately.
+
+        If testsuite is set to a valid path, then it will be used as test suite:
+            if it's a file, it will be placed in full_test_dir
+            if it's a directory, then every java file will be placed in full_test_dire
+
+        If all_dev, relevant_dev and single_dev are true (only one because of mutually
+        exclusivity in interface), then respectively
+            all developer tests;
+            only the D4J relevant tests;
+            the single relevant class test
+        will be placed in test_dir
+        """
+
+        skip = kwargs.get("skip_setup")
+        if skip:
+            logger.info("Skipping setup of testsuite...")
+            return
+        else:
+            shutil.rmtree(self.test_dir, ignore_errors=True)
+            logger.debug("Old test dir removed")
+
+            os.makedirs(self.full_test_dir)
+            logger.debug("Created empty test dir up to class package")
+
+        testsuite = kwargs.get("testsuite")
+        if testsuite:
+            # check if provided path exists
+            path = pathlib.Path(testsuite)
+            if not path.exists():
+                raise FileNotFoundError(path)
+
+            # path exists
+            if path.is_file():
+                files = [path]
+            elif path.is_dir():
+                files = list(path.glob("*.java"))
+            else:
+                raise NotImplementedError("This line should never be executed")
+
+            # for each file, put it in right folder
+            for file in files:
+                # destination is the full test dir, or
+                # the relevant class package structure in the test dir
+                dst = self.full_test_dir / file.name
+
+                # then copy the test file in the correct spot
+                shutil.copyfile(file, dst)
+
+        all_dev = kwargs.get("all_dev")
+        relevant_dev = kwargs.get("relevant_dev")
+        single_dev = kwargs.get("single_dev")
+
+        if all_dev:
+            dev_test = self.test_dir.parent / self.default_backup_tests
+            logger.debug(f"Dev test: {dev_test}")
+            if dev_test.exists():
+                shutil.copytree(dev_test, self.test_dir, dirs_exist_ok=True)
+                logger.info(f"All dev tests copied into {self.test_dir}")
+            else:
+                msg = f"Dev tests backup doesn't exist! Did you removed it from {self.test_dir}?"
+                logger.error(msg)
+        elif relevant_dev:
+            # get the list of relevant testsuites
+            for i, test in enumerate(self.test_classes):
+                testfile = test.replace(".", "/") + ".java"
+                src_path = self.test_dir.parent / self.default_backup_tests / testfile
+                dst_path = (pathlib.Path(self.test_dir) / testfile).parent
+
+                logger.debug(f"src no {i} is {src_path.name}")
+                os.makedirs(dst_path, exist_ok=True)
+                shutil.copy(os.fspath(src_path), os.fspath(dst_path))
+
+            logger.info("Relevant developer tests were inserted in current test suite")
+        elif single_dev:
+            src = (
+                self.test_dir.parent
+                / self.default_backup_tests
+                / self.test_class.replace(".", "/")
+            )
+            src = src.with_suffix(".java")
+            logger.debug(f"src is {src.resolve()}")
+
+            dst = self.full_test_dir
+            logger.debug(f"dst is {dst.resolve()}")
+
+            shutil.copy(src, dst)
+            logger.info("Single developer test was inserted in current test suite")
+        else:
+            logger.info("No developer test was inserted in current test suite")
+
     def set_dummy_testsuite(self):
         """Set dummy as project testsuite"""
         root = self.project_tests_root()
         return self._set_dir_testsuite(root / "dummy")
-
-    def set_tool_testsuite(self, tool: tools.Tool, **kwargs):
-        """Set <tool_name> as project testsuite"""
-        root = self.project_tests_root()
-        return self._set_dir_testsuite(root / tool.name, **kwargs)
-
-    def get_student_names(self, tool: tools.Tool) -> Generator:
-        """Get students' names from formatted java-filename"""
-        root = self.project_tests_root()
-        tool_dir = root / tool.name
-        logger.debug(f"Parsing java files from {tool_dir}")
-
-        pattern = re.compile(r"^([a-zA-Z]+)_([a-zA-Z]+)_([a-zA-Z]\d+)")
-        for file in tool_dir.glob("*.java"):
-            match = pattern.match(file.name)
-            if not match:
-                logger.warning(f"Invalid filename found: {file.name}")
-                continue
-            else:
-                logger.debug(f"Match found: {match.groups()}")
-                yield match.group(3)
 
     def get_tests(self, filter_out_nontest: bool = True) -> Sequence[str]:
         """Return a list of tests in current testsuite with Java format,
@@ -309,164 +377,13 @@ class Project:
     def _get_tools(self, tools_list: Union[tools.Tool, Sequence[tools.Tool]] = None):
         # if None, take every tool
         if tools_list is None:
-            tools_list = [
-                tools.Judy(self.filepath),
-                tools.Jumble(self.filepath),
-                tools.Major(self.filepath),
-                tools.Pit(self.filepath),
-            ]
+            tools_list = tools.get_all_tools(self.filepath, self.relevant_class)
 
         # if one tool is given, create list
         if isinstance(tools_list, tools.Tool):
             tools_list = [tools_list]
 
         return tools_list
-
-    def coverage(
-        self, tools_list: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
-    ):
-        """Execute coverage for selected tools.
-        If 'tools_list' is None, every tool will be selected.
-        """
-        tools_list = self._get_tools(tools_list)
-        logger.info(f"Executing coverage on tools {tools_list}")
-
-        if len(tools_list) > 1 and kwargs.get("group"):
-            msg = (
-                "Cannot select a students group with multiple tools, retry with a single tool. "
-                "Arg will be ignored!"
-            )
-            logger.warning(msg)
-            kwargs.pop("group")
-
-        skip_setup = kwargs.get("skip_setup", False)
-
-        # backup original tests
-        self.backup_tests()
-
-        for tool in tools_list:
-            logger.info(f"Start coverage of tool {tool}")
-
-            if not skip_setup:
-                # set tool tests for project
-                self.clean()
-                self.d4j_compile()
-                self.set_tool_testsuite(tool, **kwargs)
-            else:
-                logger.info("Skipping setup testsuite")
-
-            # execute defects4j coverage
-            # produces coverage.xml
-            self.d4j_coverage(**kwargs)
-
-            # get student names
-            students_group = kwargs.get("group")
-            str_names = ""
-            if students_group:
-                str_names = students_group.upper()
-            # else:
-            #    names = list(self.get_student_names(tool))
-            #    str_names = "_".join(names)
-
-            # rename coverage.xml
-            fname = "coverage.xml"
-            src = self.filepath / fname
-            dst = src.with_name(f"{tool.name}_{str_names}_{fname}")
-            if src.exists():
-                logger.debug(f"Generated {fname}")
-                shutil.move(src, dst)
-                logger.info(f"Generated {dst.name}")
-            else:
-                msg = f"Skipping {tool} because {fname} wasn't found - maybe there was an error?"
-                logger.warning(msg)
-
-    def get_mutation_scores(
-        self, tools_list: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
-    ):
-        """Get mutation scores for the selected tools.
-        If 'tools_list' is None, every tool will be selected.
-        """
-
-        tools_list = self._get_tools(tools_list)
-        logger.info(f"Executing get_mutation_scores on tools {tools_list}")
-
-        if not tools_list:
-            logger.warning("Empty toolset, exit...")
-            return
-
-        # backup original tests
-        self.backup_tests()
-
-        for tool in tools_list:
-            logger.info(f"Start get_mutation_scores for {tool}")
-
-            # clean old target
-            self.clean()
-
-            # set entire tool testsuite
-            # if student group is set, set only that testsuite
-            # if with-dev is set, set also dev testsuite
-            self.set_tool_testsuite(tool, **kwargs)
-
-            # compile new testsuite
-            self.d4j_compile(**kwargs)
-
-            # must specify tests and class for replacement of dummy text
-            # inside bash scripts
-            if isinstance(tool, (tools.Jumble, tools.Pit)):
-                # class under mutation name is project relevant class
-                class_under_mutation = self.relevant_class
-
-                # if I have a Jumble tool, I must specify the list of all tests
-                if isinstance(tool, tools.Jumble):
-                    tests = " ".join(self.get_tests())
-                # if I have a Pit tool, I must specify the regex of all tests
-                else:
-                    tests = "*Test*"
-
-                kwargs.update(
-                    {
-                        "tests": tests,
-                        "class": class_under_mutation,
-                    }
-                )
-
-            # execute tool
-            logger.debug(f"{tool} kwargs: {kwargs}")
-
-            logger.info(f"Setupping {tool}...")
-            tool.setup(**kwargs)
-            logger.info("Setup completed")
-
-            logger.info(f"Running {tool}...")
-            tool.run(**kwargs)
-            logger.info("Execution completed")
-
-            logger.info("Collecting output...")
-            tool.get_output()
-            logger.info("Output collected")
-
-            # get student names
-            students_group = kwargs.get("group")
-            str_names = ""
-            if students_group:
-                str_names = students_group.upper()
-            # else:
-            #    names = list(self.get_student_names(tool))
-            #    str_names = "_".join(names)
-
-            # get also dev, if used
-            with_dev = kwargs.get("with_dev")
-            if with_dev:
-                str_names += "_dev"
-
-            # create mutation score filename
-            fname = f"mutation_score_{str_names}"
-
-            # get mutation score
-            score = tool.get_mutation_score(json_output=fname)
-
-            logger.info(f"Got mutation score: {score}")
 
     def run_tools(
         self, tools_list: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
@@ -478,21 +395,16 @@ class Project:
         logger.info(f"Executing run_tools on tools {tools_list}")
 
         if not tools_list:
-            logger.warning("Empty toolset, exit...")
+            logger.warning("No mutation tool specified, exit...")
             return
+
+        self.set_testsuite(**kwargs)
 
         for tool in tools_list:
             logger.info(f"Start run_tools for {tool}")
 
-            # clean old target
+            # clean and compile the testsuite again
             self.clean()
-
-            # set entire tool testsuite
-            # if student group is set, set only that testsuite
-            # if with-dev is set, set also dev testsuite
-            self.set_tool_testsuite(tool, **kwargs)
-
-            # compile new testsuite
             self.d4j_compile(**kwargs)
 
             # must specify tests and class for replacement of dummy text
@@ -522,23 +434,6 @@ class Project:
             # execute tool
             logger.debug(f"{tool} kwargs: {kwargs}")
 
-            # get student names
-            students_group = kwargs.get("group")
-            str_names = ""
-            if students_group:
-                str_names = students_group.upper()
-            # else:
-            #    names = list(self.get_student_names(tool))
-            #    str_names = "_".join(names)
-
-            # get also dev, if used
-            with_dev = kwargs.get("with_dev")
-            with_single_dev = kwargs.get("with_single_dev")
-            if with_dev:
-                str_names += "_dev"
-            elif with_single_dev:
-                str_names += "_single_dev"
-
             logger.info(f"Setupping {tool}...")
             tool.setup(**kwargs)
             logger.info("Setup completed")
@@ -548,7 +443,7 @@ class Project:
             logger.info("Execution completed")
 
             logger.info("Collecting output...")
-            tool.get_output(str_names)
+            tool.get_output()
             logger.info("Output collected")
 
     def get_mutants(

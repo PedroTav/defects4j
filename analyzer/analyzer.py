@@ -36,7 +36,7 @@ def main():
     test_environment()
 
     # define actions and sort them automatically
-    actions = ("backup", "restore", "mutants", "coverage", "mutscore", "run")
+    actions = ("backup", "restore", "mutants", "run")
     actions = sorted(actions)
 
     # create argument parser
@@ -48,12 +48,10 @@ def main():
 
     parser.add_argument("--tools", help="mutation tools to use", nargs="*")
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--group", help="students group's testsuite to use")
-    group.add_argument(
-        "--no-groups",
-        help="remove any student group from testsuite",
-        action="store_true",
+    parser.add_argument(
+        "-t",
+        "--testsuite",
+        help="test suite to use, can be a single Java file or a directory of Java files",
     )
 
     parser.add_argument(
@@ -67,25 +65,25 @@ def main():
     )
     parser.add_argument(
         "--skip-setup",
-        help="skip the setup of the tool (running coverage against current testsuite)",
+        help="skip the setup of the tool (running actions against current testsuite)",
         action="store_true",
         default=False,
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
-        "--with-dev",
+        "--all-dev",
         help="add original dev tests to testsuite",
         action="store_true",
         default=False,
     )
     group.add_argument(
-        "--with-single-dev",
-        help="add the only relevant dev test to testsuite",
+        "--single-dev",
+        help="add the single dev test to testsuite",
         action="store_true",
         default=False,
     )
     group.add_argument(
-        "--with-relevant-dev",
+        "--relevant-dev",
         help="add the relevant dev tests to testsuite",
         action="store_true",
         default=False,
@@ -98,7 +96,7 @@ def main():
     if args.verbose:
         stream_handler.setLevel(logging.DEBUG)
 
-    logger.info(f"args are {args}")
+    logger.debug(f"args are {args}")
 
     # check if is a valid action
     action = str(args.action).lower()
@@ -120,24 +118,11 @@ def main():
     else:
         tools = get_all_tools(project.filepath, project.relevant_class)
 
-    kwargs = dict(
-        stdout=args.stdout,
-        stderr=args.stderr,
-        group=args.group,
-        no_groups=args.no_groups,
-        with_dev=args.with_dev,
-        with_single_dev=args.with_single_dev,
-        with_relevant_dev=args.with_relevant_dev,
-        skip_setup=args.skip_setup,
-    )
+    kwargs = vars(args)
 
     action = args.action
     if action == "mutants":
         project.get_mutants(tools, **kwargs)
-    elif action == "mutscore":
-        project.get_mutation_scores(tools, **kwargs)
-    elif action == "coverage":
-        project.coverage(tools, **kwargs)
     elif action == "backup":
         project.backup_tests()
     elif action == "restore":
