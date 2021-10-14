@@ -5,9 +5,9 @@ with the goal of advancing software engineering research.
 Refer to the [original repository](https://github.com/rjust/defects4j) for more informations, and a brief guide to how to setup the infrastructure.
 
 # Mutation tools
-The only mutation tool (integrated in the original Defects4J) is Major.
+The only mutation tool integrated in the original Defects4J framework is Major.
 
-This version adds to the list also Judy, Jumble and PIT. These tools are installed and configured when the project is initializated; after the setup phase is completed, they are located in `<defects4jPath>/mutation_tools`.
+This version adds to the list also Judy, Jumble and PIT. These tools are installed and configured when the project is initializated; after the setup phase is completed, they are placed in `<defects4jPath>/mutation_tools`.
 
 The three mutation tools added are Judy, Jumble and Pit, bumping the number of installed mutation tools to four.
 
@@ -102,6 +102,39 @@ executing the specified action against the current testsuite found in the right 
 
 - `--stderr`: Enable the stderr of the selected tools.
 
+## Example of usage
+An example of usage is given below.
+
+### Checkout of a project
+```bash
+# assure that the parent folder is existing, e.g. /tmp/d4j
+mkdir -p /tmp/d4j
+
+# checkout a Defects4J project
+defects4j checkout -p Cli -v 32f -w /tmp/d4j/cli32f
+
+# set a variable to ease reading and usage
+D4J_PROJECT=/tmp/d4j/cli32f
+```
+
+### Analyzer run
+```bash
+# get automatically defects4j paths
+D4J_HOME=$(cd $(dirname $(which defects4j))/../.. && pwd)
+D4J_ANALYZER=$(cd $D4J_HOME/analyzer/ && pwd)
+
+# run all four mutation tools on the project
+python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT
+
+# run only a tool on the project
+python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT --tools jumble
+
+# # run a tool on the project, setting the testsuite to only relevant developer test classes
+python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT --tools jumble --with-relevant-dev
+
+# run two tools on the project, capturing also stdout and stderr
+python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT --tools major pit --stdout --stderr
+```
 
 # Reports Analyzer
 The report analyzer script can extract informations about mutation tools' output files, making them reports. Each report is a collection of useful informations, like the total count of mutations generated, the mutation score, or even the mutations themselves.
@@ -229,3 +262,23 @@ e91feb39          26                28       0.071429
 - `--base-index BASE_INDEX`: The zero-based index of the report to use as base in the list of provided reports. If missing or negative, the first will be used; if too big, the last will be used.
 
 - `-o OUTPUT`, `--output OUTPUT`: Saves the table in a *csv* file named `OUTPUT`, instead of displaying it on `stdout`.
+
+## Example of usage
+An example of usage is given below. The execution of *ReportsAnalyzer* should be subsequent to *Analyzer*.
+
+### ReportsAnalyzer run
+```bash
+# get automatically paths
+D4J_HOME=$(cd $(dirname $(which defects4j))/../.. && pwd)
+D4J_ANALYZER="$D4J_HOME/analyzer"
+D4J_PROJECT_OUT="$D4J_PROJECT/tools_output"
+
+# get the summary of a Judy report
+python3 $D4J_ANALYZER/reportsanalyzer.py summary \
+-p Cli -b 32 -t judy $D4J_PROJECT_OUT/judy/result.json
+
+# get the effectiveness of a Jumble report with respect to its base report
+python3 $D4J_ANALYZER/reportsanalyzer.py effectiveness -p Cli -b 32 -t judy \
+$D4J_PROJECT_OUT/jumble/base_jumble_output.txt \
+$D4J_PROJECT_OUT/jumble/jumble_output.txt
+```
