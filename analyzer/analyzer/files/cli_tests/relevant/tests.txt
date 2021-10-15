@@ -1,5 +1,0 @@
-org.apache.commons.cli.ApplicationTest
-org.apache.commons.cli.BugsTest
-org.apache.commons.cli.HelpFormatterTest
-org.apache.commons.cli.bug.BugCLI162Test
-org.apache.commons.cli.bug.BugCLI18Test

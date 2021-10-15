@@ -23,6 +23,18 @@ class Project:
 
     default_backup_tests = "dev_backup"
 
+    dummy_test_template = """
+package {package};
+
+import junit.framework.TestCase;
+
+public class {classname} extends TestCase {{
+    public void testDummy() {{
+        // do nothing
+    }}
+}}
+""".strip()
+
     def __init__(self, filepath: Union[str, os.PathLike]):
         """Create a (Defects4j compatible) Project"""
         self.filepath = pathlib.Path(filepath)
@@ -98,108 +110,6 @@ class Project:
         shutil.move(src, dst)
         logger.info(f"Restored tests to {dst}")
 
-    def _set_dir_testsuite(self, dirpath: Union[str, os.PathLike], **kwargs):
-        """Set a directory of java files as the project testsuite.
-        If 'group' is specified, then only that students group
-        testsuite will be used."""
-
-        shutil.rmtree(self.test_dir, ignore_errors=True)
-
-        no_groups = kwargs.get("no_groups", False)
-        logger.debug(f"Skip students' groups? {no_groups}")
-        if not no_groups:
-            students = kwargs.get("group")
-            logger.debug(f"Student group to restore: {students}")
-
-            # if group argument is missing, take all compatible groups
-            if students is None:
-                src = os.fspath(dirpath)
-            else:
-                group_pattern = re.compile(r"[a-z]+_[a-z]+_([a-z0-9]+).*", re.I)
-                students = students.upper()
-                all_found = [
-                    group_pattern.match(element.name).group(1)
-                    for element in pathlib.Path(dirpath).glob("*")
-                ]
-                logger.debug(f"Searching {students} in Java files")
-                fnames = list(pathlib.Path(dirpath).glob(f"*{students}*"))
-                logger.debug(f"Found {fnames}")
-                assert (
-                    len(fnames) > 0
-                ), f"No match found for {students}. Found {all_found}"
-                assert len(fnames) == 1, f"More than one match found for {students}"
-                fname = fnames[0]
-                src = os.fspath(fname.resolve())
-
-            dst = os.fspath(self.full_test_dir)
-            shutil.rmtree(self.test_dir, ignore_errors=True)
-
-            logger.debug(f"Source is {src}")
-            logger.debug(f"Destination is {dst}")
-
-            if students is None:
-                shutil.copytree(src, dst)
-            else:
-                os.makedirs(dst)
-                shutil.copy(src, dst)
-
-        with_dev = kwargs.get("with_dev", False)
-        logger.debug(f"Restore dev tests? {with_dev}")
-
-        with_single_dev = kwargs.get("with_single_dev", False)
-        logger.debug(f"Restore only one relevant dev test? {with_single_dev}")
-
-        with_relevant_dev = kwargs.get("with_relevant_dev", False)
-        logger.debug(f"Restore all relevant dev tests? {with_relevant_dev}")
-
-        if with_dev:
-            dev_test = self.test_dir.parent / self.default_backup_tests
-            logger.debug(f"Dev test: {dev_test}")
-            if dev_test.exists():
-                shutil.copytree(dev_test, self.test_dir, dirs_exist_ok=True)
-                logger.info(f"Dev tests copied into {dst}")
-            else:
-                msg = "Dev tests doesn't exist! Did you run 'analyzer.py backup <path>' before?"
-                logger.error(msg)
-        elif with_single_dev:
-            src = (
-                self.test_dir.parent
-                / self.default_backup_tests
-                / self.test_class.replace(".", "/")
-            )
-            src = src.with_suffix(".java")
-            logger.debug(f"src is {src.resolve()}")
-
-            dst = self.full_test_dir
-            logger.debug(f"dst is {dst.resolve()}")
-
-            os.makedirs(dst, exist_ok=True)
-            shutil.copy(src, dst)
-        elif with_relevant_dev:
-            # set the destination path
-            dst = self.test_dir
-            os.makedirs(dst, exist_ok=True)
-            logger.debug(f"dst is {dst.resolve()}")
-
-            # get the list of relevant testsuites
-            for i, test in enumerate(self.test_classes):
-                testfile = test.replace(".", "/") + ".java"
-                src_path = self.test_dir.parent / self.default_backup_tests / testfile
-                dst_path = (pathlib.Path(dst) / testfile).parent
-
-                logger.debug(f"src no {i} is {src_path.name}")
-                os.makedirs(dst_path, exist_ok=True)
-                shutil.copy(os.fspath(src_path), os.fspath(dst_path))
-
-    def project_tests_root(self):
-        """Get the root of project tests, based on project name"""
-        tests = dict(
-            Cli="cli_tests",
-            Gson="gson_tests",
-            Lang="lang_tests",
-        )
-        return tools.FILES / tests[self.name]
-
     def set_testsuite(self, **kwargs):
         """Method to set the testsuite for an execution.
 
@@ -228,6 +138,23 @@ class Project:
             os.makedirs(self.full_test_dir)
             logger.debug("Created empty test dir up to class package")
 
+        dummy = kwargs.get("dummy")
+        if dummy:
+            # create ad-hoc empty test class for current project
+            clsname = f"{self.name}DummyTest"
+            clsfile = f"{clsname}.java"
+            dst = self.full_test_dir / clsfile
+
+            with open(dst, "w") as fp:
+                fp.write(
+                    self.dummy_test_template.format(
+                        package=self.package,
+                        classname=clsname,
+                    )
+                )
+
+            logger.info(f"{clsfile} was created and inserted in current test suite")
+
         testsuite = kwargs.get("testsuite")
         if testsuite:
             # check if provided path exists
@@ -251,6 +178,12 @@ class Project:
 
                 # then copy the test file in the correct spot
                 shutil.copyfile(file, dst)
+
+            if path.is_file():
+                msg = f"{path.name} was inserted in current test suite"
+            else:
+                msg = "All test files were inserted in current test suite"
+            logger.info(msg)
 
         all_dev = kwargs.get("all_dev")
         relevant_dev = kwargs.get("relevant_dev")
@@ -293,11 +226,6 @@ class Project:
             logger.info("Single developer test was inserted in current test suite")
         else:
             logger.info("No developer test was inserted in current test suite")
-
-    def set_dummy_testsuite(self):
-        """Set dummy as project testsuite"""
-        root = self.project_tests_root()
-        return self._set_dir_testsuite(root / "dummy")
 
     def get_tests(self, filter_out_nontest: bool = True) -> Sequence[str]:
         """Return a list of tests in current testsuite with Java format,
@@ -459,8 +387,8 @@ class Project:
             logger.warning("Empty toolset, exit...")
             return
 
-        # set the testsuite as dummy (empty test class)
-        self.set_dummy_testsuite()
+        # set dummy testsuite as only testclass
+        self.set_testsuite(dummy=True)
 
         # clean compiled and compile again
         self.clean()
