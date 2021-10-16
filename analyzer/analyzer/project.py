@@ -313,6 +313,23 @@ public class {classname} extends TestCase {{
 
         return tools_list
 
+    @staticmethod
+    def _run_tool(tool: tools.Tool, **kwargs):
+        # execute tool
+        logger.debug(f"{tool} kwargs: {kwargs}")
+
+        logger.info(f"Setupping {tool}...")
+        tool.setup(**kwargs)
+        logger.info("Setup completed")
+
+        logger.info(f"Running {tool}...")
+        tool.run(**kwargs)
+        logger.info("Execution completed")
+
+        logger.info("Collecting output...")
+        tool.get_output()
+        logger.info("Output collected")
+
     def run_tools(
         self, tools_list: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
     ):
@@ -359,20 +376,7 @@ public class {classname} extends TestCase {{
                     }
                 )
 
-            # execute tool
-            logger.debug(f"{tool} kwargs: {kwargs}")
-
-            logger.info(f"Setupping {tool}...")
-            tool.setup(**kwargs)
-            logger.info("Setup completed")
-
-            logger.info(f"Running {tool}...")
-            tool.run(**kwargs)
-            logger.info("Execution completed")
-
-            logger.info("Collecting output...")
-            tool.get_output()
-            logger.info("Output collected")
+            self._run_tool(tool, **kwargs)
 
     def get_mutants(
         self, tools_list: Union[tools.Tool, Sequence[tools.Tool]] = None, **kwargs
@@ -396,7 +400,7 @@ public class {classname} extends TestCase {{
         logger.info("Project cleaned and compiled")
 
         # get dummy test name
-        dummy_test_name = f"{self.name.upper()}_DUMMY_TEST"
+        dummy_test_name = f"{self.name}DummyTest"
         dummy_test = ".".join([self.package, dummy_test_name])
 
         # and also class under mutation name
@@ -414,16 +418,4 @@ public class {classname} extends TestCase {{
                     }
                 )
 
-            logger.debug(f"{tool} kwargs: {kwargs}")
-
-            logger.info(f"Setupping {tool}...")
-            tool.setup(**kwargs)
-            logger.info("Setup completed")
-
-            logger.info(f"Running {tool}...")
-            tool.run(**kwargs)
-            logger.info("Execution completed")
-
-            logger.info("Collecting output...")
-            tool.get_output()
-            logger.info("Output collected")
+            self._run_tool(tool, **kwargs)
