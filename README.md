@@ -7,9 +7,8 @@ Refer to the [original repository](https://github.com/rjust/defects4j) for more 
 # Mutation tools
 The only mutation tool integrated in the original Defects4J framework is Major.
 
-This version adds to the list also Judy, Jumble and PIT. These tools are installed and configured when the project is initializated; after the setup phase is completed, they are placed in `<defects4jPath>/mutation_tools`.
-
 The three mutation tools added are Judy, Jumble and Pit, bumping the number of installed mutation tools to four.
+These tools are installed and configured when the project is initializated; after the setup phase is completed, they are placed in `<defects4jPath>/mutation_tools`.
 
 # Analyzer
 The analyzer scripts can automate the execution of particular commands and the extraction of useful informations regarding Defects4J Project.
