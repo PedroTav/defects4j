@@ -104,6 +104,9 @@ D4J_ANALYZER="$D4J_HOME/analyzer"
 # run all four mutation tools on the project with an empty test suite
 python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT
 
+# run the tools without modifying the current test suite
+python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT --skip-setup
+
 # run the tools with a java test file
 python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT -t /path/to/Test.java
 
@@ -264,7 +267,7 @@ python3 $D4J_ANALYZER/reportsanalyzer.py summary \
 -p Cli -b 32 -t judy /path/to/judy/result.json
 
 # get the effectiveness of a Jumble report with respect to its base report
-python3 $D4J_ANALYZER/reportsanalyzer.py effectiveness -p Cli -b 32 -t judy \
+python3 $D4J_ANALYZER/reportsanalyzer.py effectiveness -p Cli -b 32 -t jumble \
 /path/to/jumble/base_jumble_output.txt \
 /path/to/jumble/jumble_output.txt
 ```
