@@ -20,7 +20,7 @@ To use Analyzer, `python3` must be available in your system. You can refer to th
 
 After ensuring that Python is installed, the required packages are next; you can install them with 
 ```bash
-python3 -m pip install --user requirements.txt
+python3 -m pip install --user <analyzerPath>/requirements.txt
 ```
 
 If `pip` is not installed and you're using Debian/Ubuntu, run the command 
@@ -128,13 +128,6 @@ python3 $D4J_ANALYZER/analyzer.py run $D4J_PROJECT --stdout --stderr
 
 # Reports Analyzer
 The report analyzer script can extract informations about mutation tools' output files, making them reports. Each report is a collection of useful informations, like the total count of mutations generated, the mutation score, or even the mutations themselves.
-
-## Installation
-The installation is analogous to what we have seen for Analyzer:
-the required packages can be installed running
-```bash
-python3 -m pip install --user requirements.txt
-```
 
 ## Usage
 The usage of the module is 
