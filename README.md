@@ -16,16 +16,17 @@ The analyzer scripts can automate the execution of particular commands and the e
 In the following, `<analyzerPath>` will refer to the installation folder of *Analyzer*; this is located in `<defects4jPath>/analyzer`.
 
 ## Installation
-To use Analyzer, `python3` must be available in your system. You can refer to the [official download page](https://www.python.org/downloads/) or your distribution's package manager.
+To use Analyzer, `python3` must be available in your system. You can refer to the [official download page](https://www.python.org/downloads/) or your distribution's package manager. **The minimum required version is 3.8.**
+
+```bash
+$ sudo apt install python3 python3-pip -y
+$ python3 --version
+Python 3.8.x
+```
 
 After ensuring that Python is installed, the required packages are next; you can install them with 
 ```bash
 python3 -m pip install --user <analyzerPath>/requirements.txt
-```
-
-If `pip` is not installed and you're using Debian/Ubuntu, run the command 
-```bash
-sudo apt install python3-pip
 ```
 
 ## Usage
