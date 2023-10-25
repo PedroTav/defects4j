@@ -312,7 +312,7 @@ class Defects4jGUI(tk.Frame):
                 for file_path in os.listdir(dir_path):
                     if file_path.endswith(filetype[1:]):
                         filename = file_path
-                command = ("source venv/bin/activate && python3 reportsanalyzer.py table -p " + proj.get() + " -b "
+                command = ("python3 reportsanalyzer.py table -p " + proj.get() + " -b "
                            + version + " -t " + self.tool_selected.get()
                            + " $HOME/" + projectname + "/tools_output/pit/" + filename
                            + " -o " + self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv")
@@ -324,13 +324,13 @@ class Defects4jGUI(tk.Frame):
                 for file_path in os.listdir(dir_path):
                     if file_path.endswith(filetype[1:]):
                         filename = file_path
-                command = ("source venv/bin/activate && python3 reportsanalyzer.py table -p " + proj.get() + " -b "
+                command = ("python3 reportsanalyzer.py table -p " + proj.get() + " -b "
                            + version + " -t " + self.tool_selected.get()
                            + " $HOME/" + projectname + "/tools_output/judy/" + filename
                            + " -o " + self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv")
                 os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
             case "major":
-                command = ("source venv/bin/activate && python3 reportsanalyzer.py table -p " + proj.get() + " -b "
+                command = ("python3 reportsanalyzer.py table -p " + proj.get() + " -b "
                            + version + " -t " + self.tool_selected.get()
                            + " $HOME/" + projectname + "/tools_output/major/ -o "
                            + self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv")
@@ -358,7 +358,7 @@ class Defects4jGUI(tk.Frame):
                 if file_path.endswith(filetype[1:]):
                     filename = "/" + file_path
 
-        command = ("source venv/bin/activate && python3 reportsanalyzer.py summary -p " + proj.get()
+        command = ("python3 reportsanalyzer.py summary -p " + proj.get()
                    + " -b " + version + " -t " + tool + " $HOME/" + projectname + "/tools_output/" + tool + filename)
         os.system("gnome-terminal -e 'bash -c \"" + command + ";bash\"'")
 
