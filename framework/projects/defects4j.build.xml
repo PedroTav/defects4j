@@ -218,6 +218,8 @@ project-specific build file ("project_id"/"project_id".build.xml) for the
             fork="no"
 
             mutationAnalysis="true"
+            exportKillMap="true"
+            killMapfile="killMap.csv"
             timeoutFactor="16"
             sort="${major.sort}"
             haltonfailure="true"
