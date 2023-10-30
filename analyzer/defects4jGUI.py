@@ -214,8 +214,10 @@ class Defects4jGUI(tk.Frame):
         self.dev_test_check.grid(row=2, column=1, padx=(15, 0), pady=5)
 
         self.pit_mutation_level_label = tk.Label(self.mutator_frame, text="Mutation Level")
-        self.pit_mutation_level_dropdown = ttk.Combobox(self.mutator_frame, values=["Default", "Stronger", "All"],
+        self.pit_mutation_level_dropdown = ttk.Combobox(self.mutator_frame, values=["Stronger", "Default", "All"],
                                                         state="readonly")
+        self.pit_mutation_level_dropdown.current(1)
+        self.pit_mutation_level_dropdown.configure(state="disabled")
 
         # Analyzer Settings
         self.analyzer_frame = tk.LabelFrame(self, text="Analyzer")
@@ -508,6 +510,12 @@ class Defects4jGUI(tk.Frame):
 
         for item1, item2, item3, item4 in zip(mutant_list, line_list, operator_list, counter_list):
             sheet_data.append((item1, item2, item3, item4))
+
+        enumerated_sheet_data = tuple(enumerate(sheet_data))
+
+        for i, j in reversed(enumerated_sheet_data):
+            if str(j[1]) == '0' or str(j[1]) == '-1':
+                del sheet_data[i]
 
         return sheet_data
 
