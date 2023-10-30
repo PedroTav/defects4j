@@ -56,7 +56,7 @@ class StartPage(tk.Frame):
         self.user_path = os.path.expanduser('~')
 
         self.projects = []
-        self.startupCheck()
+        self.startup_check()
         #with open('data.txt') as inFile:
         #    self.projects = [line.strip() for line in inFile]
 
@@ -73,9 +73,10 @@ class StartPage(tk.Frame):
         self.project_version = tk.Label(self.start_project, text="Version")
         self.project_version.grid(row=1, column=0)
 
-        self.version_dropdown = ttk.Combobox(self.start_project, values=["32f", "15f", "53f"],
-                                             state="readonly", textvariable=self.ver_pick)
+        self.version_dropdown = ttk.Combobox(self.start_project, state="readonly", textvariable=self.ver_pick)
         self.version_dropdown.grid(row=1, column=1)
+
+        self.project_dropdown.bind('<<ComboboxSelected>>', lambda event: self.project_select())
 
         self.checkout_button = tk.Button(self.start_project, text="Checkout",
                                          command=lambda: [self.compile_button.config(state="normal"),
@@ -111,7 +112,19 @@ class StartPage(tk.Frame):
         for widget in self.load_project.winfo_children():
             widget.grid_configure(padx=10, pady=5)
 
-    def startupCheck(self):
+    def project_select(self):
+        self.version_dropdown.set('')
+        match self.proj_pick.get():
+            case 'Cli':
+                self.version_dropdown['values'] = ["32f"]
+            case 'Gson':
+                self.version_dropdown['values'] = ["15f"]
+            case 'Lang':
+                self.version_dropdown['values'] = ["53f"]
+            case _:
+                print("Invalid project selected.")
+
+    def startup_check(self):
         path = pathlib.Path().resolve() / "data.json"
         print(path)
         if os.path.isfile(path) and os.access(path, os.R_OK):
