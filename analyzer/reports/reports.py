@@ -435,7 +435,7 @@ class MajorReport(MultipleFilesReport):
             "Description",
         ]
         mutants_df = pd.read_csv(
-            logfile, delimiter=":", header=None, names=columns
+            logfile, delimiter=":", header=None, names=columns, on_bad_lines='skip'
         ).set_index(columns[0])
 
         # fix mismatch in length
