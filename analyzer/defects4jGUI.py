@@ -7,8 +7,8 @@ import time
 import json
 import pathlib
 import re
-
 import subprocess
+
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
@@ -380,6 +380,7 @@ class Defects4jGUI(tk.Frame):
     def coverage(self, proj, ver):
         command = "defects4j coverage -w $HOME/" + proj.get() + "-" + ver.get()
         os.system("gnome-terminal -e 'bash -c \"" + command + ";bash\"'")
+        #subprocess.Popen("gnome-terminal -e 'bash -c \"" + command + ";bash\"'", shell=True)
 
     def tool_select_check(self):
         if self.tool_selected.get() == "pit":
@@ -524,11 +525,11 @@ class Defects4jGUI(tk.Frame):
         for item1, item2, item3, item4 in zip(mutant_list, line_list, operator_list, counter_list):
             sheet_data.append((item1, item2, item3, item4))
 
-        enumerated_sheet_data = tuple(enumerate(sheet_data))
+        #enumerated_sheet_data = tuple(enumerate(sheet_data))
 
-        for i, j in reversed(enumerated_sheet_data):
-            if str(j[1]) == '0' or str(j[1]) == '-1':
-                del sheet_data[i]
+        #for i, j in reversed(enumerated_sheet_data):
+        #    if str(j[1]) == '0' or str(j[1]) == '-1':
+        #        del sheet_data[i]
 
         return sheet_data
 
@@ -594,7 +595,12 @@ class Defects4jGUI(tk.Frame):
         #print(sheet_data)
 
         for value in sheet_data:
-            data_view.insert("", tk.END, values=value)
+            if str(value[1]) == '0' or str(value[1]) == '-1':
+                data_view.insert("", tk.END, values=value, tags=('ignore',))
+            else:
+                data_view.insert("", tk.END, values=value)
+
+        data_view.tag_configure('ignore', background='grey')
 
     def launch_kill_matrix(self, proj, ver):
         if self.kill_matrix_check == 1:
