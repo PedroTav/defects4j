@@ -57,8 +57,6 @@ class StartPage(tk.Frame):
 
         self.projects = []
         self.startup_check()
-        #with open('data.txt') as inFile:
-        #    self.projects = [line.strip() for line in inFile]
 
         self.start_project = tk.LabelFrame(self, text="Create Project")
         self.start_project.grid(row=0, column=0, sticky="news", padx=20, pady=20)
@@ -105,7 +103,6 @@ class StartPage(tk.Frame):
         self.load_button = tk.Button(self.load_project, text="Load",
                                      command=lambda: [proj.set(self.proj_var.get()[:-4]),
                                                       ver.set(self.proj_var.get()[len(self.proj_var.get())-3:]),
-                                                      os.chdir(self.user_path + '/Desktop/defects4j/analyzer'),
                                                       controller.show_frame(Defects4jGUI)])
         self.load_button.grid(row=1, column=0)
 
@@ -126,7 +123,6 @@ class StartPage(tk.Frame):
 
     def startup_check(self):
         path = pathlib.Path().resolve() / "data.json"
-        print(path)
         if os.path.isfile(path) and os.access(path, os.R_OK):
             # checks if file exists
             print("File exists and is readable")
@@ -310,7 +306,6 @@ class Defects4jGUI(tk.Frame):
 
         command = ("python3 analyzer.py run $HOME/" + proj.get() + "-" + ver.get() + " "
                    + developer_test + student_test + "--tools " + self.tool_selected.get())
-        print(command)
         os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
 
     def analyze_report(self, proj, ver):
@@ -380,7 +375,6 @@ class Defects4jGUI(tk.Frame):
     def coverage(self, proj, ver):
         command = "defects4j coverage -w $HOME/" + proj.get() + "-" + ver.get()
         os.system("gnome-terminal -e 'bash -c \"" + command + ";bash\"'")
-        #subprocess.Popen("gnome-terminal -e 'bash -c \"" + command + ";bash\"'", shell=True)
 
     def tool_select_check(self):
         if self.tool_selected.get() == "pit":
@@ -398,18 +392,12 @@ class Defects4jGUI(tk.Frame):
             self.major_kill_matrix_check.grid_remove()
 
     def csv_browse_button(self):
-        # Allow user to select a directory and store it in global var
-        # called folder_path
         filename = filedialog.askdirectory()
         self.csv_folder_path.set(filename)
-        print(filename)
 
     def suite_browse_button(self):
-        # Allow user to select a directory and store it in global var
-        # called folder_path
         filename = filedialog.askdirectory()
         self.suite_folder_path.set(filename)
-        print(filename)
 
     def load_csv(self):
         path = self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv"
@@ -525,12 +513,6 @@ class Defects4jGUI(tk.Frame):
         for item1, item2, item3, item4 in zip(mutant_list, line_list, operator_list, counter_list):
             sheet_data.append((item1, item2, item3, item4))
 
-        #enumerated_sheet_data = tuple(enumerate(sheet_data))
-
-        #for i, j in reversed(enumerated_sheet_data):
-        #    if str(j[1]) == '0' or str(j[1]) == '-1':
-        #        del sheet_data[i]
-
         return sheet_data
 
     def data_overlay(self, proj, ver):
@@ -591,8 +573,6 @@ class Defects4jGUI(tk.Frame):
                 sheet_data = self.judy_parse(df)
             case _:
                 print("No tool selection was found.")
-
-        #print(sheet_data)
 
         for value in sheet_data:
             if str(value[1]) == '0' or str(value[1]) == '-1':
