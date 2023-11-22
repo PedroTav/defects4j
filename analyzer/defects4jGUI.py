@@ -142,11 +142,11 @@ class StartPage(tk.Frame):
     def checkout(self, proj_pick, ver_pick):
         command = ("defects4j checkout -p " + proj_pick.get() + " -v" + ver_pick.get() + " -w $HOME/"
                    + proj_pick.get() + "-" + ver_pick.get())
-        os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
+        os.system(command)
 
     def compile(self, proj_pick, ver_pick):
         command = ("defects4j compile -w $HOME/" + proj_pick.get() + "-" + ver_pick.get())
-        os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
+        os.system(command)
         self.projects.append(proj_pick.get() + "-" + ver_pick.get())
         self.load_dropdown['values'] = self.projects
 
@@ -306,7 +306,7 @@ class Defects4jGUI(tk.Frame):
 
         command = ("python3 analyzer.py run $HOME/" + proj.get() + "-" + ver.get() + " "
                    + developer_test + student_test + "--tools " + self.tool_selected.get())
-        os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
+        os.system(command)
 
     def analyze_report(self, proj, ver):
 
@@ -326,7 +326,7 @@ class Defects4jGUI(tk.Frame):
                            + version + " -t " + self.tool_selected.get()
                            + " $HOME/" + projectname + "/tools_output/pit/" + filename
                            + " -o " + self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv")
-                os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
+                os.system(command)
             case "judy":
                 dir_path = self.user_path + '/' + projectname + '/tools_output/judy/'
                 filetype = "*.json"
@@ -338,13 +338,13 @@ class Defects4jGUI(tk.Frame):
                            + version + " -t " + self.tool_selected.get()
                            + " $HOME/" + projectname + "/tools_output/judy/" + filename
                            + " -o " + self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv")
-                os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
+                os.system(command)
             case "major":
                 command = ("python3 reportsanalyzer.py table -p " + proj.get() + " -b "
                            + version + " -t " + self.tool_selected.get()
                            + " $HOME/" + projectname + "/tools_output/major/ -o "
                            + self.csv_folder_path.get() + "/" + self.csv_filename.get() + ".csv")
-                os.system("gnome-terminal -e 'bash -c \"" + command + "\" '")
+                os.system(command)
             case _:
                 print("No tool selection was found.")
 
@@ -370,11 +370,11 @@ class Defects4jGUI(tk.Frame):
 
         command = ("python3 reportsanalyzer.py summary -p " + proj.get()
                    + " -b " + version + " -t " + tool + " $HOME/" + projectname + "/tools_output/" + tool + filename)
-        os.system("gnome-terminal -e 'bash -c \"" + command + ";bash\"'")
+        os.system(command)
 
     def coverage(self, proj, ver):
         command = "defects4j coverage -w $HOME/" + proj.get() + "-" + ver.get()
-        os.system("gnome-terminal -e 'bash -c \"" + command + ";bash\"'")
+        os.system(command)
 
     def tool_select_check(self):
         if self.tool_selected.get() == "pit":
