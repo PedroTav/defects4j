@@ -7,9 +7,7 @@ import time
 import json
 import pathlib
 import re
-import subprocess
 
-from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import StringVar
@@ -55,6 +53,7 @@ class StartPage(tk.Frame):
 
         self.user_path = os.path.expanduser('~')
 
+        self.projects_id = self.get_projects_id()
         self.projects = []
         self.startup_check()
 
@@ -64,7 +63,7 @@ class StartPage(tk.Frame):
         self.project_name_label = tk.Label(self.start_project, text="Project")
         self.project_name_label.grid(row=0, column=0)
 
-        self.project_dropdown = ttk.Combobox(self.start_project, values=["Cli", "Gson", "Lang"],
+        self.project_dropdown = ttk.Combobox(self.start_project, values=self.projects_id,
                                              state="readonly", textvariable=self.proj_pick)
         self.project_dropdown.grid(row=0, column=1)
 
@@ -109,17 +108,22 @@ class StartPage(tk.Frame):
         for widget in self.load_project.winfo_children():
             widget.grid_configure(padx=10, pady=5)
 
+    def get_projects_id(self):
+        project_list = list()
+        path = os.path.split(os.getcwd())[0] + '/framework/projects'
+        items = os.listdir(path)
+
+        for item in items:
+            if os.path.isdir(path + '/' + item):
+                project_list.append(item)
+
+        return project_list
+
     def project_select(self):
         self.version_dropdown.set('')
-        match self.proj_pick.get():
-            case 'Cli':
-                self.version_dropdown['values'] = ["32f"]
-            case 'Gson':
-                self.version_dropdown['values'] = ["15f"]
-            case 'Lang':
-                self.version_dropdown['values'] = ["53f"]
-            case _:
-                print("Invalid project selected.")
+        path = os.path.split(os.getcwd())[0] + '/framework/projects/' + self.proj_pick.get() + '/active-bugs.csv'
+        df = pd.read_csv(path)
+        self.version_dropdown['values'] = df['bug.id'].tolist()
 
     def startup_check(self):
         path = pathlib.Path().resolve() / "data.json"
@@ -140,21 +144,21 @@ class StartPage(tk.Frame):
                 db_file.write(json.dumps([]))
 
     def checkout(self, proj_pick, ver_pick):
-        command = ("defects4j checkout -p " + proj_pick.get() + " -v" + ver_pick.get() + " -w $HOME/"
-                   + proj_pick.get() + "-" + ver_pick.get())
+        command = ("defects4j checkout -p " + proj_pick.get() + " -v" + ver_pick.get() + "f -w $HOME/"
+                   + proj_pick.get() + "-" + ver_pick.get() + "f")
         os.system(command)
 
     def compile(self, proj_pick, ver_pick):
-        command = ("defects4j compile -w $HOME/" + proj_pick.get() + "-" + ver_pick.get())
+        command = ("defects4j compile -w $HOME/" + proj_pick.get() + "-" + ver_pick.get() + "f")
         os.system(command)
-        self.projects.append(proj_pick.get() + "-" + ver_pick.get())
+        self.projects.append(proj_pick.get() + "-" + ver_pick.get() + "f")
         self.load_dropdown['values'] = self.projects
 
         with open("data.json") as fp:
             data = json.load(fp)
 
         data.append({
-            "name": proj_pick.get() + "-" + ver_pick.get()
+            "name": proj_pick.get() + "-" + ver_pick.get() + "f"
         })
 
         with open("data.json", 'w') as json_file:
@@ -450,10 +454,30 @@ class Defects4jGUI(tk.Frame):
 
         projectname = proj.get() + "-" + ver.get()
 
-        dir_path = self.user_path + '/' + projectname + '/tools_output/major/'
+        path = self.user_path + '/' + projectname + '/tools_output/major/'
+        filetype = "*.csv"
+        filename = ""
+        for file_path in os.listdir(path):
+            if file_path.endswith(filetype[1:]):
+                filename = file_path
+
+        path = self.user_path + '/' + projectname + '/tools_output/major/' + filename
+
+        kill_csv = pd.read_csv(path)
+
+        mutant_nr = kill_csv["MutantNo"].tolist()
+        live_mutant = kill_csv["[FAIL | TIME | EXC | LIVE]"].tolist()
+
+        live_mutant_ids = list()
+
+        for item1, item2 in zip(mutant_nr, live_mutant):
+            if item2 == 'LIVE':
+                live_mutant_ids.append(item1)
+
+        path = self.user_path + '/' + projectname + '/tools_output/major/'
         filetype = "*.log"
         filename = ""
-        for file_path in os.listdir(dir_path):
+        for file_path in os.listdir(path):
             if file_path.endswith(filetype[1:]):
                 filename = file_path
 
@@ -469,10 +493,11 @@ class Defects4jGUI(tk.Frame):
 
         for line in f:
             attributes = re.split(":", line)
-            line_list.append(attributes[5])
-            operator_list.append(attributes[1])
-            original_list.append(attributes[2])
-            mutated_list.append(attributes[3])
+            if int(attributes[0]) in live_mutant_ids:
+                line_list.append(attributes[5])
+                operator_list.append(attributes[1])
+                original_list.append(attributes[2])
+                mutated_list.append(attributes[3])
 
         sheet_data = list()
 
@@ -583,7 +608,7 @@ class Defects4jGUI(tk.Frame):
         data_view.tag_configure('ignore', background='grey')
 
     def launch_kill_matrix(self, proj, ver):
-        if self.kill_matrix_check == 1:
+        if self.kill_matrix_check.get() == 1:
             self.matrix_overlay(proj, ver)
         else:
             return
